@@ -47,14 +47,39 @@ Built for the MCP ecosystem — works with **Claude Desktop**, **Claude Code**, 
 
 ## Quick Start
 
-### Install & Authenticate
+### Hosted server (recommended)
+
+No install, no local token files. Point any MCP-capable client at:
+
+```
+https://mcp.travel-code.com/mcp
+```
+
+On first use the client opens a browser window, you log in to TravelCode,
+approve the consent screen, and you're done. Works in Claude for Web,
+Claude Desktop, Claude Code, Cursor, Windsurf, and any other client that
+supports HTTP+OAuth MCP servers.
+
+| Client | How to add |
+|---|---|
+| **Claude Web / Desktop** | Settings → Connectors → **Add custom connector** → URL `https://mcp.travel-code.com/mcp` |
+| **Claude Code** | `claude mcp add --transport http travelcode https://mcp.travel-code.com/mcp` |
+| **Cursor** | Settings → MCP → Add Server → URL `https://mcp.travel-code.com/mcp` |
+| **Windsurf / VS Code / JetBrains / others** | Use the client's MCP config and set transport = HTTP (Streamable), URL = `https://mcp.travel-code.com/mcp` |
+
+Once connected, the assistant can search flights, find hotels, view and manage
+your orders, and pull delay stats — on behalf of the signed-in TravelCode user.
+
+### Local install & authenticate (stdio)
+
+For local development or air-gapped setups:
 
 ```bash
 # 1. Authenticate with your TravelCode account (opens browser, one-time)
 npx mcp-travelcode-auth auth
 ```
 
-### Claude Desktop
+### Claude Desktop (local stdio)
 
 Add to your `claude_desktop_config.json`:
 
