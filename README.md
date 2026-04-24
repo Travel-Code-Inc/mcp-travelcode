@@ -18,7 +18,7 @@
 
 <p align="center">
   <a href="#quick-start">Quick Start</a> •
-  <a href="#tools-19">Tools</a> •
+  <a href="#tools-20">Tools</a> •
   <a href="#supported-clients">Clients</a> •
   <a href="#example-conversations">Examples</a> •
   <a href="#authentication">Auth</a> •
@@ -36,14 +36,14 @@ Built for the MCP ecosystem — works with **Claude Desktop**, **Claude Code**, 
 ### Key Features
 
 - 🔍 **Flight search** — multi-city, one-way, round-trip with cabin class and passenger filters
-- 🏨 **Hotel search** — star rating, meal plans, refundability, price filters with SSE streaming
+- 🏨 **Hotel search** — property type, star rating, meal plans, refundability, price filters with streaming results
 - 📊 **Flight status** — real-time tracking with delays, gates, terminals, and aircraft info
 - 📈 **Delay statistics** — historical delay and cancellation data for flights and airports
 - 📋 **Order management** — create, cancel, modify bookings; check cancellation conditions
 - 🔐 **OAuth 2.1 + PKCE** — secure browser-based authentication, auto-refreshing tokens
 - 🌍 **Airport & airline data** — search by name, city, IATA/ICAO code
 - ⚡ **Async polling** — automatic background polling for flight search results
-- 🔄 **Dual transport** — stdio (local) and HTTP/SSE (remote) support
+- 🔄 **Dual transport** — stdio (local) and Streamable HTTP (remote) support
 
 ## Quick Start
 
@@ -204,15 +204,15 @@ mcp:
       args: ["mcp-travelcode"]
 ```
 
-### HTTP Transport (Remote / Multi-client)
+### Streamable HTTP Transport (Remote / Multi-client)
+
+Run an HTTP server locally (or use the hosted instance at `https://mcp.travel-code.com/mcp`):
 
 ```bash
-npx mcp-travelcode --http          # Start HTTP+SSE server
-# or
-npm run start:http                  # If installed locally
+npm run start:http    # Starts on http://localhost:3000/mcp
 ```
 
-Connect any MCP client to `http://localhost:3000/mcp` via SSE transport.
+Connect any MCP client to `http://localhost:3000/mcp` using the **Streamable HTTP** transport (MCP spec 2025-03-26+). Per-user OAuth tokens are read from the `Authorization: Bearer` header on each request.
 
 ## Supported Clients
 
@@ -234,9 +234,9 @@ Works with **any MCP-compatible client** — including all major AI assistants, 
 | [VS Code](https://code.visualstudio.com/) | stdio | ✅ Compatible |
 | [OpenClaw](https://openclaw.ai) | stdio | ✅ Tested |
 | [MCP Inspector](https://github.com/modelcontextprotocol/inspector) | stdio | ✅ Tested |
-| Any MCP client | stdio / HTTP+SSE | ✅ Compatible |
+| Any MCP client | stdio / Streamable HTTP | ✅ Compatible |
 
-## Tools (19)
+## Tools (20)
 
 ### ✈️ Flight Search & Reference Data
 
@@ -263,7 +263,7 @@ Works with **any MCP-compatible client** — including all major AI assistants, 
 |------|-------------|
 | `search_hotel_locations` | Find cities, regions, or specific hotels by name (returns location IDs for search) |
 | `get_hotel_location` | Get location details by ID |
-| `search_hotels` | Search hotels with filters — star rating, price range, meal plan, refundability. Results stream via SSE |
+| `search_hotels` | Search hotels with filters — property type, star rating, price range, meal plan, refundability. Results stream incrementally |
 
 ### 📋 Order Management
 
@@ -350,7 +350,7 @@ npm run dev          # Run with tsx (hot reload)
 npm run build        # Compile TypeScript
 npm test             # Run tests
 npm run inspect      # Test interactively with MCP Inspector
-npm run start:http   # Start HTTP+SSE transport server
+npm run start:http   # Start Streamable HTTP transport server
 ```
 
 ### Project Structure
@@ -358,12 +358,12 @@ npm run start:http   # Start HTTP+SSE transport server
 ```
 src/
 ├── index.ts          # stdio entry point
-├── http-server.ts    # HTTP+SSE entry point
+├── http-server.ts    # Streamable HTTP entry point
 ├── server.ts         # MCP server setup & tool registration
 ├── config.ts         # Environment configuration
 ├── auth/             # OAuth 2.1 PKCE flow & CLI
 ├── client/           # TravelCode API client
-├── tools/            # 19 MCP tool implementations
+├── tools/            # 20 MCP tool implementations
 ├── formatters/       # Response formatting
 └── polling/          # Async flight search polling
 ```
