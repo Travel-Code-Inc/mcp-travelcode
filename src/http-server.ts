@@ -166,6 +166,70 @@ app.get("/health", (_req, res) => {
   });
 });
 
+// --- Landing page ---
+//
+// Friendly response for humans hitting the root in a browser, and a terse
+// JSON equivalent for clients that send Accept: application/json.
+
+const landingHtml = `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>TravelCode MCP Server</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    :root { color-scheme: light dark; }
+    body {
+      font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+      max-width: 42rem; margin: 4rem auto; padding: 0 1.5rem;
+    }
+    h1 { font-size: 1.6rem; margin: 0 0 .5rem; }
+    .tag { display: inline-block; padding: .15rem .55rem; border-radius: 999px;
+           background: #1fcc7b22; color: #137a48; font-size: .85rem; font-weight: 600; }
+    @media (prefers-color-scheme: dark) { .tag { color: #4fe097; } }
+    code { background: #8883; padding: .1rem .4rem; border-radius: 4px; font-size: .95em; }
+    pre  { background: #8883; padding: 1rem; border-radius: 6px; overflow-x: auto; }
+    a { color: inherit; }
+    .meta { color: #888; font-size: .9rem; margin-top: 2rem; }
+  </style>
+</head>
+<body>
+  <h1>TravelCode MCP Server <span class="tag">running</span></h1>
+  <p>This is the Model Context Protocol endpoint for
+    <a href="https://travel-code.com">TravelCode</a> — flights, hotels, bookings.</p>
+
+  <h2>Connect your AI assistant</h2>
+  <p>Point any MCP-capable client at:</p>
+  <pre><code>https://mcp.travel-code.com/mcp</code></pre>
+  <p>Authentication is handled via OAuth 2.1 (PKCE) against
+    <code>travel-code.com</code> — you'll see a login window the first time you use it.</p>
+
+  <h2>Endpoints</h2>
+  <ul>
+    <li><code>POST /mcp</code> — MCP JSON-RPC (Streamable HTTP transport)</li>
+    <li><code>GET  /health</code> — service status</li>
+    <li><code>GET  /.well-known/oauth-protected-resource/mcp</code> — RFC 9728 metadata</li>
+    <li><code>GET  /.well-known/oauth-authorization-server</code> — RFC 8414 metadata</li>
+  </ul>
+
+  <p class="meta">© TravelCode</p>
+</body>
+</html>`;
+
+app.get("/", (req, res) => {
+  if (req.accepts(["html", "json"]) === "json") {
+    res.json({
+      name: "TravelCode MCP Server",
+      status: "ok",
+      mcp_endpoint: MCP_RESOURCE_IDENTIFIER,
+      health: `${RESOURCE_URI}/health`,
+      protected_resource_metadata: PRM_URL,
+    });
+    return;
+  }
+  res.type("html").send(landingHtml);
+});
+
 // --- Helper: send 401 ---
 
 function send401(res: express.Response, description = "Bearer token required"): void {
