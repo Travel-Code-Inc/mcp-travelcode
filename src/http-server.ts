@@ -26,8 +26,10 @@ const PORT = parseInt(process.env.PORT || "3000", 10);
 const API_BASE_URL = (process.env.TRAVELCODE_API_BASE_URL || "https://api.travel-code.com/v1").replace(/\/+$/, "");
 
 // Upstream Authorization Server — where /oauth/authorize, /oauth/token,
-// /oauth/register live AND where /.well-known/oauth-authorization-server is
-// now served (with CORS) directly. We point clients there instead of proxying.
+// /oauth/register, /oauth/revoke live. We proxy AS discovery from this
+// sidecar (see authorizationServerMetadata below) because Claude.ai fetches
+// AS metadata from the resource origin rather than following PRM's
+// `authorization_servers` field.
 const UPSTREAM_AS_ORIGIN = (process.env.OAUTH_ISSUER || "https://travel-code.com").replace(/\/+$/, "");
 
 // Public URL of this MCP server (origin, no path). In production, set to
@@ -99,13 +101,16 @@ app.options(/.*/, (_req, res) => {
 // --- Protected Resource Metadata (RFC 9728) ---
 //
 // `resource` is the canonical MCP endpoint URL — audience binding (RFC 8707)
-// ties tokens to this exact URL. `authorization_servers` points at the real
-// upstream AS, which now serves its own RFC 8414 metadata with CORS, so we no
-// longer proxy AS metadata from this sidecar.
+// ties tokens to this exact URL. `authorization_servers` points at this
+// sidecar rather than the upstream origin, because Claude.ai (and other
+// clients still on MCP spec 2025-03) run OAuth discovery against the
+// resource server itself and ignore the `authorization_servers` field.
+// The AS metadata we serve below forwards clients to the real upstream
+// authorize / token / register endpoints.
 
 const protectedResourceMetadata = {
   resource: MCP_RESOURCE_IDENTIFIER,
-  authorization_servers: [UPSTREAM_AS_ORIGIN],
+  authorization_servers: [RESOURCE_URI],
   scopes_supported: SCOPES_SUPPORTED,
   bearer_methods_supported: ["header"],
   resource_name: "TravelCode MCP Server",
@@ -119,6 +124,36 @@ app.get("/.well-known/oauth-protected-resource/mcp", (_req, res) => {
 // discovery per RFC 9728 §3.1.
 app.get("/.well-known/oauth-protected-resource", (_req, res) => {
   res.json(protectedResourceMetadata);
+});
+
+// --- Authorization Server Metadata (RFC 8414) ---
+//
+// `issuer` matches the URL this metadata is served from (RFC 8414 §3.3).
+// The endpoints point at the real upstream AS; the browser and token calls
+// go there directly, only discovery is served from the sidecar.
+// TravelCode tokens are opaque (not JWTs) so the client has no issuer claim
+// to cross-check against — the mismatch with travel-code.com as token origin
+// is harmless in practice.
+
+const authorizationServerMetadata = {
+  issuer: RESOURCE_URI,
+  authorization_endpoint: `${UPSTREAM_AS_ORIGIN}/oauth/authorize`,
+  token_endpoint: `${UPSTREAM_AS_ORIGIN}/oauth/token`,
+  registration_endpoint: `${UPSTREAM_AS_ORIGIN}/oauth/register`,
+  revocation_endpoint: `${UPSTREAM_AS_ORIGIN}/oauth/revoke`,
+  scopes_supported: SCOPES_SUPPORTED,
+  response_types_supported: ["code"],
+  grant_types_supported: ["authorization_code", "refresh_token"],
+  token_endpoint_auth_methods_supported: ["none"],
+  code_challenge_methods_supported: ["S256"],
+};
+
+app.get("/.well-known/oauth-authorization-server", (_req, res) => {
+  res.json(authorizationServerMetadata);
+});
+
+app.get("/.well-known/oauth-authorization-server/mcp", (_req, res) => {
+  res.json(authorizationServerMetadata);
 });
 
 // --- Health check ---
@@ -219,7 +254,8 @@ const httpServer = app.listen(PORT, () => {
   console.log(`TravelCode MCP Server (HTTP) listening on port ${PORT}`);
   console.log(`MCP endpoint:         ${MCP_RESOURCE_IDENTIFIER}`);
   console.log(`Protected Resource:   ${PRM_URL}`);
-  console.log(`Authorization Server: ${UPSTREAM_AS_ORIGIN}`);
+  console.log(`AS metadata (proxy):  ${RESOURCE_URI}/.well-known/oauth-authorization-server`);
+  console.log(`Upstream OAuth:       ${UPSTREAM_AS_ORIGIN}/oauth/{authorize,token,register,revoke}`);
   console.log(`API base URL:         ${API_BASE_URL}`);
   console.log(`Scopes:               ${SCOPES_SUPPORTED.join(", ")}`);
 });
