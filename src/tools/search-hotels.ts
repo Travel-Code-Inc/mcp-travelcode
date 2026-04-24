@@ -13,6 +13,26 @@ const guestSchema = z.object({
     .describe("Array of child ages (0-17), required if children > 0"),
 });
 
+const propertyTypeEnum = z.enum([
+  "hotel",
+  "aparthotel",
+  "apartment",
+  "hostel",
+  "guesthouse",
+  "bed_and_breakfast",
+  "resort",
+  "villa",
+  "motel",
+  "bungalow",
+  "inn",
+  "country_house",
+  "holiday_park",
+  "camping",
+  "boutique",
+  "capsule",
+  "specialty",
+]);
+
 const filterSchema = z.object({
   minPrice: z.number().int().optional().describe("Minimum price per night"),
   maxPrice: z.number().int().optional().describe("Maximum price per night"),
@@ -25,6 +45,23 @@ const filterSchema = z.object({
     .array(z.enum(["full_refund"]))
     .optional()
     .describe("Payment filters: full_refund = only fully refundable"),
+  propertyTypes: z
+    .array(propertyTypeEnum)
+    .optional()
+    .describe(
+      "Limit to specific accommodation types. Map the user's wording to the closest code; " +
+      "when intent is ambiguous, include multiple codes. " +
+      "hotel=classic hotel; aparthotel=serviced apartments with hotel-style reception; " +
+      "apartment=standalone apartment or studio rental; hostel=hostel or dorm; " +
+      "guesthouse=guesthouse or pension; bed_and_breakfast=small lodging with breakfast; " +
+      "resort=resort or spa complex, often all-inclusive; villa=villa or private luxury house; " +
+      "motel=roadside motel; bungalow=small standalone cabin; inn=small traditional lodging; " +
+      "country_house=rural or country house, cottage, dacha; holiday_park=holiday park or resort village; " +
+      "camping=campground or glamping; boutique=boutique hotel; capsule=capsule hotel; " +
+      "specialty=unusual lodging such as treehouse, ice hotel, boat, etc. " +
+      "Examples: 'apartment' → [\"apartment\",\"aparthotel\"]; 'cottage' → [\"country_house\",\"villa\"]; " +
+      "'B&B' → [\"bed_and_breakfast\"]; 'hostel' → [\"hostel\"]; 'all-inclusive' → [\"resort\"]."
+    ),
 }).optional();
 
 export const searchHotelsSchema = {
@@ -48,7 +85,7 @@ export const searchHotelsSchema = {
 export function registerSearchHotels(server: McpServer, client: TravelCodeApiClient) {
   server.tool(
     "search_hotels",
-    "Search hotels by location, dates, and guests. Requires a location ID from search_hotel_locations — chain the calls silently without explaining intermediate steps to the user. Returns hotel offers with prices, star ratings, and meal plans. Supports filtering by stars, price, meal plan, and refundability.",
+    "Search hotels by location, dates, and guests. Requires a location ID from search_hotel_locations — chain the calls silently without explaining intermediate steps to the user. Returns hotel offers with prices, star ratings, and meal plans. Supports filtering by property type (hotel, apartment, villa, hostel, B&B, resort, etc.), stars, price, meal plan, and refundability.",
     searchHotelsSchema,
     async ({ location, checkin, checkout, country_code, guests, sort, offset, limit, filter }) => {
       try {
