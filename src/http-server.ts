@@ -45,16 +45,19 @@ const PRM_URL = `${RESOURCE_URI}/.well-known/oauth-protected-resource${MCP_PATH}
 const POLL_INTERVAL_MS = parseInt(process.env.TRAVELCODE_POLL_INTERVAL_MS || "2000", 10);
 const POLL_TIMEOUT_MS = parseInt(process.env.TRAVELCODE_POLL_TIMEOUT_MS || "90000", 10);
 
+// ChatGPT compares the granted scope set against this list and warns the
+// user if the token response drops any entry, so keep this in sync with
+// what the upstream AS at travel-code.com actually issues. orders:* scopes
+// are intentionally omitted — order tools still call the API successfully
+// because the REST layer authorizes per token validity, not per scope.
 const SCOPES_SUPPORTED = [
   "flights:search",
   "flights:status",
   "flights:stats",
   "airports:read",
   "airlines:read",
-  "orders:read",
-  "orders:write",
   "hotels:search",
-  "hotels:read",
+  "tourist:read",
 ];
 
 // --- Session store ---
