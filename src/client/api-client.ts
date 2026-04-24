@@ -129,9 +129,6 @@ export class TravelCodeApiClient {
   ): Promise<Array<{ event: string; data: unknown }>> {
     await this.ensureValidToken();
 
-    // Hotels API uses accessToken in body, not Bearer header
-    const bodyWithToken = { ...body, accessToken: this.token };
-
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
 
@@ -139,11 +136,11 @@ export class TravelCodeApiClient {
       const response = await fetch(`${this.baseUrl}${path}`, {
         method: "POST",
         headers: {
+          ...this.headers(),
           "Content-Type": "application/json",
-          "X-Source": "mcp-server",
           Accept: "text/event-stream",
         },
-        body: JSON.stringify(bodyWithToken),
+        body: JSON.stringify(body),
         signal: controller.signal,
       });
 
@@ -207,48 +204,21 @@ export class TravelCodeApiClient {
   }
 
   /**
-   * GET with accessToken as query parameter (used by hotel location endpoints).
+   * GET for hotel location endpoints. Historically passed the token as an
+   * `accessToken` query param; upstream now requires Bearer header, so this
+   * is effectively a wrapper around `get` kept under the old name to avoid
+   * touching every tool file.
    */
   async getWithTokenParam<T>(path: string, params?: Record<string, string | number | boolean | undefined>): Promise<T> {
-    await this.ensureValidToken();
-    const allParams = { ...params, accessToken: this.token };
-    const url = new URL(`${this.baseUrl}${path}`);
-
-    for (const [key, value] of Object.entries(allParams)) {
-      if (value !== undefined) {
-        url.searchParams.set(key, String(value));
-      }
-    }
-
-    const response = await fetch(url.toString(), {
-      method: "GET",
-      headers: {
-        "X-Source": "mcp-server",
-        Accept: "application/json",
-      },
-    });
-
-    return this.handleResponse<T>(response);
+    return this.get<T>(path, params);
   }
 
   /**
-   * POST with accessToken in body (used by hotel offers endpoint).
+   * POST for hotel offers endpoint. Same story as `getWithTokenParam` — token
+   * used to go in the body, now goes in the Authorization header.
    */
   async postWithTokenParam<T>(path: string, body: Record<string, unknown>): Promise<T> {
-    await this.ensureValidToken();
-    const bodyWithToken = { ...body, accessToken: this.token };
-
-    const response = await fetch(`${this.baseUrl}${path}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Source": "mcp-server",
-        Accept: "application/json",
-      },
-      body: JSON.stringify(bodyWithToken),
-    });
-
-    return this.handleResponse<T>(response);
+    return this.post<T>(path, body);
   }
 
   private headers(): Record<string, string> {
