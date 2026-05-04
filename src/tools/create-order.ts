@@ -24,7 +24,7 @@ const documentSchema = z.object({
       "Document type, free string. Defaults to 'passport'. Examples: passport, id_card, birth_certificate.",
     ),
   number: z.string().describe("Document number (spaces will be stripped server-side)"),
-  expiry: z
+  expiryDate: z
     .string()
     .optional()
     .describe(
@@ -33,7 +33,7 @@ const documentSchema = z.object({
   issuedAt: z
     .string()
     .optional()
-    .describe("Issue date, same format rules as expiry."),
+    .describe("Issue date, same format rules as expiryDate."),
   nationality: z
     .string()
     .optional()
@@ -52,13 +52,13 @@ const guestSchema = z.object({
     .enum(["adult", "child", "infant"])
     .optional()
     .describe(
-      "Guest type. If omitted, will be inferred server-side from birthDate. " +
+      "Guest type. If omitted, will be inferred server-side from dateOfBirth. " +
         "For hotel bookings, child/infant ages must match the search occupancy.",
     ),
   firstName: z.string().describe("First name in Latin characters"),
   lastName: z.string().describe("Last name in Latin characters"),
   gender: z.enum(["M", "F"]).optional().describe("Gender (optional for hotels)"),
-  birthDate: z
+  dateOfBirth: z
     .string()
     .describe(
       "Date of birth in any common format (YYYY-MM-DD preferred; DD.MM.YYYY accepted). MCP normalizes to YYYY-MM-DD before sending.",
@@ -144,16 +144,30 @@ export const createOrderSchema = {
     ),
 };
 
-function normalizeGuest<T extends { birthDate: string; document?: { expiry?: string; issuedAt?: string } | undefined }>(
-  guest: T,
-  pathPrefix: string,
-): T {
+/**
+ * Normalize the date fields on a guest. The upstream booker validates
+ * `dateOfBirth` and `document.expiryDate`; the published API doc shows
+ * `birthDate` and `document.expiry`. We send the canonical names AND the
+ * doc-style aliases so we are tolerant of both implementations.
+ */
+function normalizeGuest<
+  T extends {
+    dateOfBirth: string;
+    birthDate?: string;
+    document?: { expiryDate?: string; expiry?: string; issuedAt?: string } | undefined;
+  },
+>(guest: T, pathPrefix: string): T {
   const out: T = { ...guest };
-  out.birthDate = normalizeDate(guest.birthDate, `${pathPrefix}.birthDate`);
+  const dob = normalizeDate(guest.dateOfBirth, `${pathPrefix}.dateOfBirth`);
+  out.dateOfBirth = dob;
+  out.birthDate = dob;
   if (guest.document) {
     const doc = { ...guest.document };
-    if (doc.expiry) {
-      doc.expiry = normalizeDate(doc.expiry, `${pathPrefix}.document.expiry`);
+    const rawExpiry = doc.expiryDate ?? doc.expiry;
+    if (rawExpiry) {
+      const exp = normalizeDate(rawExpiry, `${pathPrefix}.document.expiryDate`);
+      doc.expiryDate = exp;
+      doc.expiry = exp;
     }
     if (doc.issuedAt) {
       doc.issuedAt = normalizeDate(doc.issuedAt, `${pathPrefix}.document.issuedAt`);
