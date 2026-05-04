@@ -19,6 +19,7 @@ import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { createServer } from "./server.js";
 import { TravelCodeConfig } from "./config.js";
+import { TravelCodeApiClient } from "./client/api-client.js";
 
 // --- Configuration ---
 
@@ -65,6 +66,7 @@ const SCOPES_SUPPORTED = [
 interface Session {
   transport: StreamableHTTPServerTransport;
   server: McpServer;
+  apiClient: TravelCodeApiClient;
   createdAt: number;
 }
 
@@ -267,6 +269,11 @@ app.all("/mcp", async (req: express.Request, res: express.Response) => {
       return;
     }
 
+    // Claude.ai refreshes the access token in the background and sends a
+    // fresh Authorization header on each call — push that into the per-session
+    // API client so we don't keep firing requests with a stale bearer.
+    session.apiClient.setToken(token);
+
     await session.transport.handleRequest(req, res, req.body);
     return;
   }
@@ -286,7 +293,7 @@ app.all("/mcp", async (req: express.Request, res: express.Response) => {
     pollTimeoutMs: POLL_TIMEOUT_MS,
   };
 
-  const server = createServer(config);
+  const { server, apiClient } = createServer(config);
 
   const transport = new StreamableHTTPServerTransport({
     sessionIdGenerator: () => randomUUID(),
@@ -310,6 +317,7 @@ app.all("/mcp", async (req: express.Request, res: express.Response) => {
     sessions.set(sid, {
       transport,
       server,
+      apiClient,
       createdAt: Date.now(),
     });
   }

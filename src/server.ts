@@ -26,7 +26,12 @@ import { registerGetClient } from "./tools/get-client.js";
 import { registerSearchClients } from "./tools/search-clients.js";
 import { registerGetCurrentUser } from "./tools/get-current-user.js";
 
-export function createServer(config: TravelCodeConfig): McpServer {
+export interface CreatedServer {
+  server: McpServer;
+  apiClient: TravelCodeApiClient;
+}
+
+export function createServer(config: TravelCodeConfig): CreatedServer {
   const server = new McpServer({
     name: "TravelCode",
     version: "1.0.0",
@@ -72,5 +77,5 @@ export function createServer(config: TravelCodeConfig): McpServer {
   registerGetClient(server, client);
   registerSearchClients(server, client);
 
-  return server;
+  return { server, apiClient: client };
 }

@@ -71,6 +71,15 @@ export class TravelCodeApiClient {
     }
   }
 
+  /**
+   * Replace the current bearer token. Used by the HTTP transport on every
+   * incoming /mcp request, since Claude.ai refreshes its access token in the
+   * background and sends a fresh Authorization header on each call.
+   */
+  setToken(token: string): void {
+    this.token = token;
+  }
+
   async get<T>(path: string, params?: Record<string, string | number | boolean | undefined>): Promise<T> {
     await this.ensureValidToken();
     const url = new URL(`${this.baseUrl}${path}`);

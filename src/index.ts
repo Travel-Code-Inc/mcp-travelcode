@@ -6,7 +6,7 @@ import { createServer } from "./server.js";
 
 async function main() {
   const config = await loadConfig();
-  const server = createServer(config);
+  const { server } = createServer(config);
   const transport = new StdioServerTransport();
 
   await server.connect(transport);
