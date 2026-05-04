@@ -6,9 +6,11 @@ import { formatOrderList } from "../formatters/order-formatter.js";
 
 export const listOrdersSchema = {
   status: z
-    .enum(["pending", "confirmed", "ticketed", "pending_cancellation", "cancelled"])
+    .enum(["pre_order", "pre_payment", "pre_book", "finish", "canceled"])
     .optional()
-    .describe("Filter by order status"),
+    .describe(
+      "Filter by order status (Travel Code REST §9.2): pre_order (draft), pre_payment (awaiting payment), pre_book (booking in progress), finish (confirmed/finalized), canceled.",
+    ),
   pnr: z.string().optional().describe("Search by PNR (booking reference)"),
   passenger_name: z.string().optional().describe("Search by passenger first or last name"),
   date_from: z.string().optional().describe("Filter orders created from this date (YYYY-MM-DD)"),

@@ -266,7 +266,19 @@ export class TravelCodeApiClient {
     try {
       parsedBody = await response.json();
       const errorBody = parsedBody as ApiErrorResponse;
-      errorMessage = errorBody.message || errorBody.text || `HTTP ${response.status}`;
+      // Canonical envelope: { error: { code, message, details } }.
+      // Legacy flat shape: { code, message } or { text }.
+      const enveloped = errorBody.error;
+      const codeStr =
+        (enveloped && typeof enveloped.code === "string" && enveloped.code) ||
+        (typeof errorBody.code === "string" && errorBody.code) ||
+        "";
+      const message =
+        (enveloped && enveloped.message) ||
+        errorBody.message ||
+        errorBody.text ||
+        `HTTP ${response.status}`;
+      errorMessage = codeStr ? `${codeStr}: ${message}` : message;
     } catch {
       errorMessage = `HTTP ${response.status}: ${response.statusText}`;
     }

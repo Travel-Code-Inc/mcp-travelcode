@@ -1,6 +1,6 @@
 export interface GuestForValidation {
   type?: "adult" | "child" | "infant";
-  dateOfBirth: string; // strict YYYY-MM-DD
+  birthDate: string; // strict YYYY-MM-DD
 }
 
 /**
@@ -50,7 +50,7 @@ export function validateChildrenAges(
   if (expected.length === 0) return null;
 
   const actual = childGuests
-    .map((g) => ageAtDate(g.dateOfBirth, checkinYmd))
+    .map((g) => ageAtDate(g.birthDate, checkinYmd))
     .sort((a, b) => a - b);
 
   for (let i = 0; i < expected.length; i++) {

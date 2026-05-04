@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { TravelCodeApiClient } from "../client/api-client.js";
-import { OrderFull } from "../client/types.js";
+import { OrderEnvelope, OrderFull } from "../client/types.js";
 import { formatOrderDetail } from "../formatters/order-formatter.js";
 
 export const getOrderSchema = {
@@ -15,7 +15,8 @@ export function registerGetOrder(server: McpServer, client: TravelCodeApiClient)
     getOrderSchema,
     async ({ order_id }) => {
       try {
-        const order = await client.get<OrderFull>(`/orders/${order_id}`);
+        const raw = await client.get<OrderEnvelope | OrderFull>(`/orders/${order_id}`);
+        const order: OrderFull = (raw as OrderEnvelope).order ?? (raw as OrderFull);
 
         return {
           content: [{ type: "text", text: formatOrderDetail(order) }],

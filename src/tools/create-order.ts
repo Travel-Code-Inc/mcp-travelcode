@@ -4,7 +4,7 @@ import {
   TravelCodeApiClient,
   TravelCodeOfferChangedError,
 } from "../client/api-client.js";
-import { OrderFull } from "../client/types.js";
+import { OrderEnvelope, OrderFull } from "../client/types.js";
 import { formatOrderDetail } from "../formatters/order-formatter.js";
 import {
   AmbiguousDateError,
@@ -21,19 +21,19 @@ const documentSchema = z.object({
     .string()
     .optional()
     .describe(
-      "Document type, free uppercase string. Defaults to PASSPORT. Examples: PASSPORT, ID_CARD, BIRTH_CERTIFICATE.",
+      "Document type, free string. Defaults to 'passport'. Examples: passport, id_card, birth_certificate.",
     ),
   number: z.string().describe("Document number (spaces will be stripped server-side)"),
-  expiryDate: z
+  expiry: z
     .string()
     .optional()
     .describe(
-      "Expiry date in any common format (YYYY-MM-DD preferred; DD.MM.YYYY accepted). MCP will normalize to YYYY-MM-DD.",
+      "Expiry date in any common format (YYYY-MM-DD preferred; DD.MM.YYYY accepted). MCP normalizes to YYYY-MM-DD before sending.",
     ),
   issuedAt: z
     .string()
     .optional()
-    .describe("Issue date, same format rules as expiryDate."),
+    .describe("Issue date, same format rules as expiry."),
   nationality: z
     .string()
     .optional()
@@ -52,22 +52,28 @@ const guestSchema = z.object({
     .enum(["adult", "child", "infant"])
     .optional()
     .describe(
-      "Guest type. If omitted, will be inferred server-side from dateOfBirth. " +
+      "Guest type. If omitted, will be inferred server-side from birthDate. " +
         "For hotel bookings, child/infant ages must match the search occupancy.",
     ),
   firstName: z.string().describe("First name in Latin characters"),
   lastName: z.string().describe("Last name in Latin characters"),
-  gender: z.enum(["M", "F"]).describe("Gender"),
-  dateOfBirth: z
+  gender: z.enum(["M", "F"]).optional().describe("Gender (optional for hotels)"),
+  birthDate: z
     .string()
     .describe(
-      "Date of birth in any common format (YYYY-MM-DD preferred; DD.MM.YYYY accepted). MCP normalizes to YYYY-MM-DD.",
+      "Date of birth in any common format (YYYY-MM-DD preferred; DD.MM.YYYY accepted). MCP normalizes to YYYY-MM-DD before sending.",
     ),
   nationality: z
     .string()
     .describe(
       "Guest nationality, ISO-2 country code (BY, RU, US, ...). Required by the API. " +
         "For hotels, the lead-guest nationality MUST match the country_code that was used in search_hotels.",
+    ),
+  isMain: z
+    .boolean()
+    .optional()
+    .describe(
+      "Mark the lead guest of a hotel room. Set true for exactly one guest per room (the contact / responsible adult).",
     ),
   contacts: contactsSchema.optional().describe("Contact info — strongly recommended for the lead guest"),
   document: documentSchema.optional().describe(
@@ -107,9 +113,11 @@ export const createOrderSchema = {
     .optional()
     .describe("Rooms (each with its guests) for a hotel booking. Required for hotels."),
   payment_method: z
-    .enum(["wallet", "card"])
+    .string()
     .optional()
-    .describe("Optional preferred payment method. Omit to let the agency default decide."),
+    .describe(
+      "Optional preferred payment method. Common values: 'card', 'deposit' (corp wallet balance), 'bill' (invoice). Defaults vary per account — omit to use the account default.",
+    ),
   book_key: z
     .string()
     .optional()
@@ -136,16 +144,16 @@ export const createOrderSchema = {
     ),
 };
 
-function normalizeGuest<T extends { dateOfBirth: string; document?: { expiryDate?: string; issuedAt?: string } | undefined }>(
+function normalizeGuest<T extends { birthDate: string; document?: { expiry?: string; issuedAt?: string } | undefined }>(
   guest: T,
   pathPrefix: string,
 ): T {
   const out: T = { ...guest };
-  out.dateOfBirth = normalizeDate(guest.dateOfBirth, `${pathPrefix}.dateOfBirth`);
+  out.birthDate = normalizeDate(guest.birthDate, `${pathPrefix}.birthDate`);
   if (guest.document) {
     const doc = { ...guest.document };
-    if (doc.expiryDate) {
-      doc.expiryDate = normalizeDate(doc.expiryDate, `${pathPrefix}.document.expiryDate`);
+    if (doc.expiry) {
+      doc.expiry = normalizeDate(doc.expiry, `${pathPrefix}.document.expiry`);
     }
     if (doc.issuedAt) {
       doc.issuedAt = normalizeDate(doc.issuedAt, `${pathPrefix}.document.issuedAt`);
@@ -263,7 +271,15 @@ export function registerCreateOrder(server: McpServer, client: TravelCodeApiClie
         const extraHeaders: Record<string, string> = {};
         if (idempotency_key) extraHeaders["Idempotency-Key"] = idempotency_key;
 
-        const order = await client.post<OrderFull>("/orders", body, extraHeaders);
+        const raw = await client.post<OrderEnvelope | OrderFull>(
+          "/orders",
+          body,
+          extraHeaders,
+        );
+        // POST /v1/orders wraps the payload in `{ order: ... }`. Older builds
+        // returned the order at the top level; tolerate both.
+        const order: OrderFull =
+          (raw as OrderEnvelope).order ?? (raw as OrderFull);
         return { content: [{ type: "text", text: formatOrderDetail(order) }] };
       } catch (error) {
         if (error instanceof AmbiguousDateError || error instanceof InvalidDateError) {

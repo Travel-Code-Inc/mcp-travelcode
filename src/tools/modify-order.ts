@@ -12,7 +12,7 @@ export const modifyOrderSchema = {
   changes: z.record(z.unknown()).describe(
     "Changes object. Fields depend on type:\n" +
     "- contact: { email, phoneCode, phoneNumber }\n" +
-    "- passport: { serviceId, passengerId, documentNumber, documentType, expiryDate, nationality }\n" +
+    "- passport: { serviceId, passengerId, documentNumber, documentType, expiry, nationality }\n" +
     "- rebook: { serviceId, newDate (DD.MM.YYYY), newDateEnd (DD.MM.YYYY) }\n" +
     "- baggage: { serviceId, services: [{ type: 'baggage', weight, passengerId }] }"
   ),

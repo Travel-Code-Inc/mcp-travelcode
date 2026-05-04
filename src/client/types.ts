@@ -304,10 +304,10 @@ export interface OrderList {
 }
 
 export interface OrderPassenger {
-  id: number;
-  firstName: string;
-  lastName: string;
-  type: string;
+  id?: number;
+  firstName?: string;
+  lastName?: string;
+  type?: string;
 }
 
 export interface OrderService {
@@ -329,30 +329,73 @@ export interface OrderTicket {
   status: string;
 }
 
+/**
+ * Order shape per the published REST contract for POST /v1/orders and
+ * GET /v1/orders/{id}. Some fields are tolerated under multiple names
+ * because earlier internal builds emitted slightly different keys.
+ */
 export interface OrderFull {
-  orderId: number;
-  code: string;
-  status: string;
-  totalPrice: number;
-  currency: string;
-  passengers: OrderPassenger[];
-  services: OrderService[];
+  // Canonical fields per the Travel Code REST API (§9.1):
+  //   id, code, status, currency, priceGross, payPrice, paid,
+  //   tourBegin, tourEnd, services[], clients[].
+  id?: number;
+  code?: string;
+  status?: string;
+  currency?: string;
+  priceGross?: number;  // total agency-side price
+  payPrice?: number;    // amount the buyer is charged now
+  paid?: number;        // amount already received
+  tourBegin?: string;
+  tourEnd?: string;
+  services?: OrderService[];
+  clients?: OrderPassenger[];
+
+  // Legacy / alias fields — earlier builds used `price`, `orderId`,
+  // `totalPrice`, `passengers`. Kept tolerant so older fixtures still render.
+  price?: number;
+  orderId?: number;
+  totalPrice?: number;
+  passengers?: OrderPassenger[];
   tickets?: OrderTicket[];
-  paymentStatus: string;
-  ticketingDeadline: string | null;
-  createdAt: string | null;
-  updatedAt: string | null;
+  paymentStatus?: string;
+  ticketingDeadline?: string | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
 }
 
+/** POST /v1/orders wraps the order in `{ order: ... }`. */
+export interface OrderEnvelope {
+  order: OrderFull;
+}
+
+/** Per-service breakdown returned by GET /v1/orders/{id}/cancel/check (§9.4). */
+export interface CancelCheckDetail {
+  serviceId: number;
+  type: string;       // "hotel", "flight", ...
+  title: string;
+  refundable: boolean;
+  deadline?: string | null;
+  penalty?: number;
+}
+
+/** Legacy nested refund — earlier internal builds returned this shape. */
 export interface CancelCheckRefund {
-  estimatedAmount: number;
-  penalty: number;
-  currency: string;
-  type: string;
+  estimatedAmount?: number;
+  penalty?: number;
+  currency?: string;
+  type?: string;
 }
 
 export interface CancelCheckResponse {
   cancellable: boolean;
+
+  // Canonical (Travel Code REST §9.4): flat fields + per-service details[].
+  refundAmount?: number;
+  penaltyAmount?: number;
+  currency?: string;
+  details?: CancelCheckDetail[];
+
+  // Legacy / alias fields kept tolerant so older fixtures still render.
   refund?: CancelCheckRefund | null;
   deadline?: string | null;
   rules?: string | null;
@@ -665,8 +708,24 @@ export interface CurrentUser {
 
 // --- Errors ---
 
-export interface ApiErrorResponse {
-  code: number;
+/**
+ * Canonical error envelope per the Travel Code REST API:
+ *   { "error": { "code": "OFFER_EXPIRED", "message": "...", "details": ... } }
+ *
+ * Older builds returned a flat shape with a numeric code or a `text` field —
+ * both are tolerated when extracting a human-readable message.
+ */
+export interface ApiErrorEnvelope {
+  error?: {
+    code?: string;
+    message?: string;
+    details?: unknown;
+  };
+}
+
+export interface ApiErrorResponse extends ApiErrorEnvelope {
+  // Legacy / flat aliases
+  code?: number | string;
   message?: string;
   text?: string;
 }
