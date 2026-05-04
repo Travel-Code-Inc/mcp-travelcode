@@ -552,6 +552,99 @@ export interface HotelOffersResponse {
   bronevikId?: number;
 }
 
+// --- Clients (Tourists) ---
+
+export interface ClientDoc {
+  id: number;
+  kind: string;            // e.g. "passport_f"
+  number: string;
+  issuedBy?: string;
+  issuedAt?: string;
+  expireAt?: string;
+}
+
+export interface ClientMembership {
+  id: number;
+  type: string;            // e.g. "airline_card"
+  programId: number;
+  number: string;
+  isDefault: boolean;
+}
+
+export interface ClientShort {
+  id: number;
+  userId: number;
+  firstName: string;
+  lastName: string;
+  patronymicName?: string;
+  firstNameEn?: string;
+  lastNameEn?: string;
+  birthDay?: string;       // ISO Y-m-d
+  email?: string;
+  phone?: string;
+  sex?: "male" | "female";
+  nationality?: number;    // country id
+  country?: string;        // localized country name
+}
+
+export interface ClientFull extends ClientShort {
+  docs: ClientDoc[];
+  memberships: ClientMembership[];
+}
+
+// --- Current user ---
+
+/**
+ * Numeric role codes from common\models\user\Enums\UserRole.
+ * Mirrors what the REST API returns at GET /v1/user/me.
+ */
+export const USER_ROLE = {
+  USER: 0,
+  ADMIN: 1,
+  DIRECTOR: 2,
+  ACCOUNTANT: 3,
+  MANAGER: 4,
+  SPECIALIST: 5,
+  TOP_MANAGER: 6,
+  EMPLOYEE: 7,
+  DEVELOPER: 8,
+  EDITOR: 9,
+  TRAVEL_MANAGER: 10,
+  ADMIN_ACCOUNTANT: 11,
+  OPERATOR: 12,
+  EMPLOYEE_TRAVELLER: 13,
+} as const;
+
+export type UserRoleCode = (typeof USER_ROLE)[keyof typeof USER_ROLE];
+
+export const USER_ROLE_LABEL: Record<number, string> = {
+  0: "user",
+  1: "admin",
+  2: "director",
+  3: "accountant",
+  4: "manager",
+  5: "specialist",
+  6: "top_manager",
+  7: "employee",
+  8: "developer",
+  9: "editor",
+  10: "travel_manager",
+  11: "admin_accountant",
+  12: "operator",
+  13: "employee_traveller",
+};
+
+export interface CurrentUser {
+  id: number;
+  role: number;
+  roleName?: string;
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  agencyId?: number;
+  [key: string]: unknown;
+}
+
 // --- Errors ---
 
 export interface ApiErrorResponse {

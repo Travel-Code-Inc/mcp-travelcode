@@ -85,7 +85,20 @@ export const searchHotelsSchema = {
 export function registerSearchHotels(server: McpServer, client: TravelCodeApiClient) {
   server.tool(
     "search_hotels",
-    "Search hotels by location, dates, and guests. Requires a location ID from search_hotel_locations — chain the calls silently without explaining intermediate steps to the user. Returns hotel offers with prices, star ratings, and meal plans. Supports filtering by property type (hotel, apartment, villa, hostel, B&B, resort, etc.), stars, price, meal plan, and refundability.",
+    [
+      "Search hotels by location, dates, and guests. Requires a location ID from search_hotel_locations — chain the calls silently without explaining intermediate steps to the user. Returns hotel offers with prices, star ratings, and meal plans. Supports filtering by property type (hotel, apartment, villa, hostel, B&B, resort, etc.), stars, price, meal plan, and refundability.",
+      "",
+      "Role-based behavior (from get_current_user — call it once at the start of the session and reuse):",
+      "  • role = 'employee_traveller': force `guests = [{adults: 1}]`. Refuse multi-guest searches. Call get_first_client FIRST (silently, without asking) and use that traveler's nationality as `country_code`.",
+      "  • role = 'developer': prefix the user-facing reply with '[Developer mode]' so the user always sees the search ran in dev mode.",
+      "  • Other roles: standard rules below.",
+      "",
+      "Standard guest data rules:",
+      "  • `country_code` is the lead-guest nationality and is REQUIRED. Pricing and availability depend on it. The same value MUST be used as the lead guest's nationality at create_order.",
+      "  • If the user did not supply nationality and the booking is for 1 adult, call get_first_client first and propose that traveler's nationality. If they accept, reuse that client at create_order.",
+      "  • For multi-adult or family bookings, ask the user only for the lead guest's nationality at this stage. Full passport details are collected later, before create_order.",
+      "  • If the booking includes children, you MUST ask each child's age up-front and pass them in `guests[].childrenAges`. The same ages will be required at create_order — pass them through as `expected_children_ages`.",
+    ].join("\n"),
     searchHotelsSchema,
     async ({ location, checkin, checkout, country_code, guests, sort, offset, limit, filter }) => {
       try {

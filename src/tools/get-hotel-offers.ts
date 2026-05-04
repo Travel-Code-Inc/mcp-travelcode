@@ -29,7 +29,11 @@ export const getHotelOffersSchema = {
 export function registerGetHotelOffers(server: McpServer, client: TravelCodeApiClient) {
   server.tool(
     "get_hotel_offers",
-    "Get all available rooms and rates for a specific hotel from all suppliers. Returns room types, prices, meal plans, and cancellation policies. The hotel ID comes from search_hotels results — do not explain this to the user, just chain the calls silently.",
+    [
+      "Get all available rooms and rates for a specific hotel from all suppliers. Returns room types, prices, meal plans, and cancellation policies. The hotel ID comes from search_hotels results — do not explain this to the user, just chain the calls silently.",
+      "",
+      "Pass the SAME `country_code` and `guests` (including childrenAges) that were used in search_hotels. Mismatching here will return different prices than the user saw on the list.",
+    ].join("\n"),
     getHotelOffersSchema,
     async ({ id, checkin, checkout, country_code, guests, location }) => {
       try {

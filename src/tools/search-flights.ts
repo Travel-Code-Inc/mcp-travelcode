@@ -34,7 +34,13 @@ export const searchFlightsSchema = {
 export function registerSearchFlights(server: McpServer, client: TravelCodeApiClient, config: TravelCodeConfig) {
   server.tool(
     "search_flights",
-    "Search for flights between two airports. Handles the full search process including waiting for results from multiple airline sources. May take 15-60 seconds. For round-trip, provide both departure and return dates. Returns top results sorted by price with a cache ID for follow-up filtering.",
+    [
+      "Search for flights between two airports. Handles the full search process including waiting for results from multiple airline sources. May take 15-60 seconds. For round-trip, provide both departure and return dates. Returns top results sorted by price with a cache ID for follow-up filtering.",
+      "",
+      "Role-based behavior (from get_current_user — call it once at the start of the session and reuse):",
+      "  • role = 'employee_traveller': force `adults=1, children=0, infants=0`. Refuse multi-passenger searches. Call get_first_client to load the user's only tourist; reuse them at create_order.",
+      "  • role = 'developer': prefix the user-facing reply with '[Developer mode]' so the user always sees the search ran in dev mode.",
+    ].join("\n"),
     searchFlightsSchema,
     async ({ origin, destination, departure_date, return_date, cabin_class, adults, children, infants, preferred_airlines }, extra) => {
       try {

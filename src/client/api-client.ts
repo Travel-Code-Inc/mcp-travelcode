@@ -30,6 +30,24 @@ export class TravelCodeServerError extends Error {
   }
 }
 
+export interface OfferChangedDetails {
+  type: "offer_changed";
+  reason?: string;
+  bookKey: string;
+  expiresAt?: number;
+  previous?: unknown;
+  current?: unknown;
+}
+
+export class TravelCodeOfferChangedError extends Error {
+  public readonly details: OfferChangedDetails;
+  constructor(details: OfferChangedDetails) {
+    super(`Offer changed (${details.reason ?? "unknown reason"}); confirm with user and retry with bookKey.`);
+    this.name = "TravelCodeOfferChangedError";
+    this.details = details;
+  }
+}
+
 export class TravelCodeApiClient {
   private baseUrl: string;
   private token: string;
@@ -234,12 +252,24 @@ export class TravelCodeApiClient {
       return (await response.json()) as T;
     }
 
+    let parsedBody: unknown;
     let errorMessage: string;
     try {
-      const errorBody = (await response.json()) as ApiErrorResponse;
+      parsedBody = await response.json();
+      const errorBody = parsedBody as ApiErrorResponse;
       errorMessage = errorBody.message || errorBody.text || `HTTP ${response.status}`;
     } catch {
       errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+    }
+
+    if (
+      response.status === 409 &&
+      parsedBody &&
+      typeof parsedBody === "object" &&
+      (parsedBody as { type?: unknown }).type === "offer_changed" &&
+      typeof (parsedBody as { bookKey?: unknown }).bookKey === "string"
+    ) {
+      throw new TravelCodeOfferChangedError(parsedBody as OfferChangedDetails);
     }
 
     switch (response.status) {

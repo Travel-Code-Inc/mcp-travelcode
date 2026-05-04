@@ -21,6 +21,10 @@ import { registerSearchHotelLocations } from "./tools/search-hotel-locations.js"
 import { registerGetHotelLocation } from "./tools/get-hotel-location.js";
 import { registerSearchHotels } from "./tools/search-hotels.js";
 import { registerGetHotelOffers } from "./tools/get-hotel-offers.js";
+import { registerGetFirstClient } from "./tools/get-first-client.js";
+import { registerGetClient } from "./tools/get-client.js";
+import { registerSearchClients } from "./tools/search-clients.js";
+import { registerGetCurrentUser } from "./tools/get-current-user.js";
 
 export function createServer(config: TravelCodeConfig): McpServer {
   const server = new McpServer({
@@ -59,6 +63,14 @@ export function createServer(config: TravelCodeConfig): McpServer {
   registerGetHotelLocation(server, client);
   registerSearchHotels(server, client);
   registerGetHotelOffers(server, client);
+
+  // Current user / session
+  registerGetCurrentUser(server, client);
+
+  // Client (tourist) tools
+  registerGetFirstClient(server, client);
+  registerGetClient(server, client);
+  registerSearchClients(server, client);
 
   return server;
 }
