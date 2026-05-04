@@ -35,11 +35,15 @@ export function registerSearchFlights(server: McpServer, client: TravelCodeApiCl
   server.tool(
     "search_flights",
     [
-      "Search for flights between two airports. Handles the full search process including waiting for results from multiple airline sources. May take 15-60 seconds. For round-trip, provide both departure and return dates. Returns top results sorted by price with a cache ID for follow-up filtering.",
+      "Search for flights between two airports. Handles the full search including the wait for results from multiple airlines (15–60 seconds). For round-trip, provide both departure and return dates.",
       "",
-      "Role-based behavior (from get_current_user — call it once at the start of the session and reuse):",
-      "  • role = 'employee_traveller': force `adults=1, children=0, infants=0`. Refuse multi-passenger searches. Call get_first_client to load the user's only tourist; reuse them at create_order.",
-      "  • role = 'developer': prefix the user-facing reply with '[Developer mode]' so the user always sees the search ran in dev mode.",
+      "USER-FACING LANGUAGE (mandatory):",
+      "  • Speak in plain language: 'this flight', 'the cheapest option', 'departure / return', 'baggage included'. Never expose internal labels: search reference, cache id, parameter names, REST routes, error codes.",
+      "  • The block marked '(internal — do not show to user)' is for downstream tool calls only. Never quote or mention it.",
+      "",
+      "Role rules (from get_current_user, called once per session):",
+      "  • Traveller (employee_traveller): force 1 adult, 0 children, 0 infants. Refuse multi-passenger searches. Use get_main_client to load the only saved traveler; reuse them at booking.",
+      "  • Developer: prefix the user-facing reply with '[Developer mode]'.",
     ].join("\n"),
     searchFlightsSchema,
     async ({ origin, destination, departure_date, return_date, cabin_class, adults, children, infants, preferred_airlines }, extra) => {

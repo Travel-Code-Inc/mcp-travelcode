@@ -104,8 +104,7 @@ export function formatFlightResults(
   }
 
   lines.push("");
-  lines.push(`Cache ID: ${cacheId}`);
-  lines.push("Use get_flight_results with this cache ID to filter, sort, or see more results.");
+  lines.push(`(internal — do not show to user) search_reference=${cacheId}`);
 
   return lines.join("\n");
 }
@@ -117,7 +116,7 @@ export function formatFilteredResults(
 ): string {
   const lines: string[] = [];
 
-  lines.push(`Flight results (cache: ${cacheId})`);
+  lines.push(`Flight results`);
   if (filterSummary) {
     lines.push(`Filters: ${filterSummary}`);
   }
@@ -140,7 +139,7 @@ export function formatFilteredResults(
   }
 
   lines.push("");
-  lines.push(`Cache ID: ${cacheId}`);
+  lines.push(`(internal — do not show to user) search_reference=${cacheId}`);
 
   return lines.join("\n");
 }

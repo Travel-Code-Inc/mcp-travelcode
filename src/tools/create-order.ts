@@ -70,7 +70,11 @@ const guestSchema = z.object({
         "For hotels, the lead-guest nationality MUST match the country_code that was used in search_hotels.",
     ),
   contacts: contactsSchema.optional().describe("Contact info — strongly recommended for the lead guest"),
-  document: documentSchema.optional().describe("Travel document. Optional but usually required for hotel bookings."),
+  document: documentSchema.optional().describe(
+    "Travel document. REQUIRED for flights (the airline ticket is bound to the passport number). " +
+      "OPTIONAL for hotels — most hotels accept a booking with just first/last name + nationality + DOB. " +
+      "Do NOT ask the user for passport data when booking a hotel unless the user volunteers it.",
+  ),
 });
 
 const roomSchema = z.object({
@@ -81,25 +85,27 @@ const roomSchema = z.object({
 export const createOrderSchema = {
   service_type: z
     .enum(["hotel", "flight"])
-    .describe("What is being booked. Determines which guest layout is required."),
+    .describe("What is being booked: 'hotel' or 'flight'."),
   session_id: z
     .string()
     .describe(
-      "Search session id. From search_flights it is `cacheId`; from search_hotels it is the cacheKey returned by the hotel search.",
+      "The internal search reference printed at the bottom of the prior search tool. Copy verbatim, never show to the user.",
     ),
   offer_id: z
     .union([z.number(), z.string()])
     .describe(
-      "Offer identifier from the search response. For flights — index in the items[] array; for hotels — the offer/quote key.",
+      "The internal offer reference for the option the user picked (printed under each option by the prior tool). " +
+        "For flights it's the position of the chosen flight in the result list; for hotels it's an opaque token. " +
+        "Copy verbatim, never show to the user.",
     ),
   passengers: z
     .array(guestSchema)
     .optional()
-    .describe("Flight passengers. Required when service_type=flight."),
+    .describe("Travelers for a flight booking. Required for flights."),
   rooms: z
     .array(roomSchema)
     .optional()
-    .describe("Hotel rooms with their guests. Required when service_type=hotel."),
+    .describe("Rooms (each with its guests) for a hotel booking. Required for hotels."),
   payment_method: z
     .enum(["wallet", "card"])
     .optional()
@@ -108,25 +114,25 @@ export const createOrderSchema = {
     .string()
     .optional()
     .describe(
-      "Required ONLY when retrying after a 409 offer_changed response. Pass the bookKey from that response after the user has explicitly confirmed the new price/policy. Never auto-retry.",
+      "Internal retry token, set ONLY when retrying after the previous attempt reported that the offer changed and the user explicitly confirmed the new terms. Never narrate this to the user.",
     ),
   idempotency_key: z
     .string()
     .optional()
     .describe(
-      "UUID for duplicate protection. If repeated within 24h with the same body, the same order is returned without re-booking. Strongly recommended.",
+      "Optional UUID for duplicate protection: if the same call repeats within 24h, the same booking is returned without re-booking. Recommended.",
     ),
   expected_children_ages: z
     .array(z.number().int().min(0).max(17))
     .optional()
     .describe(
-      "Hotel only — the childrenAges array that was passed to search_hotels. MCP validates locally that booking guests of type=child have matching ages at check-in, so the user gets a clear error before the API does.",
+      "Hotel only — the children's ages used at search time. We compare them to the booking guests so a mismatch fails fast with a clear, plain-language message.",
     ),
   checkin: z
     .string()
     .optional()
     .describe(
-      "Hotel check-in date (used only for local children-age validation). Strongly recommended whenever expected_children_ages is set.",
+      "Hotel check-in date (used to compute the children's ages on that day). Required when children's ages are passed.",
     ),
 };
 
@@ -153,26 +159,30 @@ export function registerCreateOrder(server: McpServer, client: TravelCodeApiClie
   server.tool(
     "create_order",
     [
-      "Book a hotel or flight from a cached search offer.",
+      "Create a booking. Works for both hotel and flight reservations from a search the user just did.",
       "",
-      "Flow:",
-      "  1. flights: search_flights → pick offer → create_order(service_type='flight', passengers=[...]).",
-      "  2. hotels:  search_hotels → get_hotel_offers → pick rate → create_order(service_type='hotel', rooms=[{guests:[...]}]).",
+      "USER-FACING LANGUAGE (mandatory):",
+      "  • Talk to the user in plain language only. Never quote internal labels or values: search reference, offer reference, session id, offer id, booking id, cache key, quote key, external id, REST routes (POST /v1/orders, etc.), error codes (OFFER_EXPIRED, OCCUPANCY_MISMATCH, 409, etc.), parameter names from the tool schema (service_type, session_id, offer_id, book_key, …) — none of those go into messages to the user.",
+      "  • Talk about: 'this offer', 'the hotel/flight you picked', 'your booking', 'the cancellation rules', 'check-in date', 'create the booking', 'cancel the booking', 'change the booking', 'the search'.",
+      "  • If something fails, describe the cause in plain words ('the offer expired before booking', 'the price changed', 'this room is sold out', 'the room is unavailable for this nationality') — never copy the technical message verbatim.",
       "",
-      "Role-based behavior (from get_current_user, called once at session start):",
-      "  • role = 'employee_traveller': always book for exactly 1 person using the tourist returned by get_first_client. Hotels: just confirm first/last name with the user before calling this tool — do not ask anything else. Flights: also pick a document — if the tourist has multiple documents in `docs[]`, ask the user which to use; if they have only one, auto-pick it. Refuse the call if more than one passenger/guest is supplied.",
-      "  • role = 'developer': prefix your user-facing reply (after a successful booking or on a 409) with '[Developer mode]' so the user knows the action ran in dev mode.",
+      "How to wire the call (internal — never narrate to the user):",
+      "  • Hotels: take the rate the user picked from get_hotel_offers, copy its offer_reference into offer_id and the search_reference at the bottom of get_hotel_offers (or, if missing, the search_reference at the bottom of search_hotels) into session_id, build rooms[].guests, set service_type='hotel'.",
+      "  • Flights: take the search_reference from search_flights (or get_flight_results), the position of the chosen flight in the result list (1-based index → 0-based number), pass passengers, set service_type='flight'.",
       "",
-      "Guest data — hotel client-selection rules:",
-      "  • The lead guest's `nationality` MUST equal the `country_code` used in search_hotels.",
-      "  • For 1-adult hotel bookings where the user did not supply nationality, call get_first_client first and propose that traveler. If the user accepts, use their data. If they reject, ask only for the lead guest's nationality at search time, then collect full details before this call.",
-      "  • For multi-adult hotels, ask only the lead guest's nationality at search; gather all guest passport details before booking.",
-      "  • Children: their ages at check-in must match the childrenAges from search exactly. Pass `expected_children_ages` and `checkin` so MCP validates locally and returns a clear message instead of the API's OCCUPANCY_MISMATCH.",
-      "  • Adults' search-vs-booking age difference is NOT enforced.",
+      "Traveler data:",
+      "  • FLIGHT — passport (number, expiry, document nationality) is mandatory. Ask the user if not already on the saved profile.",
+      "  • HOTEL — only first name, last name (both Latin), gender, date of birth, and nationality are mandatory. Passport is OPTIONAL — do not ask for it unless the user volunteers it. Email/phone of the lead guest are nice to have, not required.",
+      "  • Lead-guest nationality on a hotel must match the nationality used at search time.",
+      "  • Children at hotel: ages at check-in must match the ages used at search. Pass them through together with the check-in date so we validate locally and fail with a plain-language message before the booker is even called.",
       "",
-      "On a 409 offer_changed response: do NOT retry automatically. Show the diff (price / cancel-policy) to the user, get explicit confirmation, then call this tool again with the exact same arguments plus `book_key` from the previous error.",
+      "Role rules (from get_current_user):",
+      "  • Traveller (employee_traveller): exactly 1 person, using the user's only saved tourist. For hotels just confirm first/last name; for flights also pick a document if the tourist has more than one. Refuse multi-guest bookings.",
+      "  • Developer: prefix the reply to the user with '[Developer mode]'.",
       "",
-      "Dates: any common format is accepted (MCP normalizes to YYYY-MM-DD). If a date is ambiguous (e.g. 03.04.2026 with no locale clue) MCP will fail and you must re-ask the user.",
+      "If the offer changed between search and booking (price or cancellation rules differ): describe the change in plain words, ask the user to confirm explicitly, then retry the booking — never auto-retry. The retry token is opaque; do not show it to the user.",
+      "",
+      "Dates: accept any common format from the user; we normalize internally. If a date is ambiguous (e.g. 03.04.2026 with no locale clue), the call fails and you must re-ask the user.",
     ].join("\n"),
     createOrderSchema,
     async ({
@@ -191,26 +201,26 @@ export function registerCreateOrder(server: McpServer, client: TravelCodeApiClie
         if (service_type === "flight") {
           if (!passengers || passengers.length === 0) {
             return {
-              content: [{ type: "text", text: "create_order(service_type='flight') requires `passengers`." }],
+              content: [{ type: "text", text: "Internal: a flight booking requires the list of travelers. Tell the user there was an internal issue building the request." }],
               isError: true,
             };
           }
           if (rooms) {
             return {
-              content: [{ type: "text", text: "create_order(service_type='flight') does not accept `rooms`." }],
+              content: [{ type: "text", text: "Internal: a flight booking does not accept rooms — only the list of travelers. Tell the user there was an internal issue building the request." }],
               isError: true,
             };
           }
         } else {
           if (!rooms || rooms.length === 0) {
             return {
-              content: [{ type: "text", text: "create_order(service_type='hotel') requires `rooms` with at least one room." }],
+              content: [{ type: "text", text: "Internal: a hotel booking requires at least one room with its guests. Tell the user there was an internal issue building the request." }],
               isError: true,
             };
           }
           if (passengers) {
             return {
-              content: [{ type: "text", text: "create_order(service_type='hotel') does not accept `passengers`. Use `rooms[].guests`." }],
+              content: [{ type: "text", text: "Internal: a hotel booking expects rooms with guests, not a flat list of travelers. Tell the user there was an internal issue building the request." }],
               isError: true,
             };
           }
@@ -227,7 +237,7 @@ export function registerCreateOrder(server: McpServer, client: TravelCodeApiClie
             return {
               content: [{
                 type: "text",
-                text: "When passing expected_children_ages you must also pass `checkin` (the hotel check-in date) so MCP can compute the child age at check-in.",
+                text: "Internal: when children's ages are provided, the hotel check-in date is needed to compute their age. Tell the user there was an internal issue building the request.",
               }],
               isError: true,
             };
@@ -265,14 +275,16 @@ export function registerCreateOrder(server: McpServer, client: TravelCodeApiClie
         if (error instanceof TravelCodeOfferChangedError) {
           const d = error.details;
           const lines = [
-            `OFFER_CHANGED: hotel rate changed before booking (reason: ${d.reason ?? "unknown"}).`,
-            `Show the diff below to the user, get explicit confirmation, then retry create_order with the same args plus book_key="${d.bookKey}".`,
+            "The hotel rate changed before booking. Describe the change to the user in plain language, get explicit confirmation, then call this tool again with exactly the same arguments — the retry token below goes into book_key.",
+            "Never show the user the words 'book_key', 'session_id', 'offer_id', 'OFFER_CHANGED', 'bookKey' or any other internal label. Just say something like: 'The price/cancellation rules just changed: <plain summary>. Want me to book at the new terms?'",
             "",
-            "Previous: " + JSON.stringify(d.previous ?? null),
-            "Current:  " + JSON.stringify(d.current ?? null),
+            `(internal — do not show to user) retry_token=${d.bookKey}`,
+            `(internal — do not show to user) reason=${d.reason ?? "unknown"}`,
+            `(internal — do not show to user) previous=${JSON.stringify(d.previous ?? null)}`,
+            `(internal — do not show to user) current=${JSON.stringify(d.current ?? null)}`,
           ];
           if (d.expiresAt) {
-            lines.push(`bookKey expires at unix=${d.expiresAt}.`);
+            lines.push(`(internal — do not show to user) retry_token_expires_unix=${d.expiresAt}`);
           }
           return { content: [{ type: "text", text: lines.join("\n") }], isError: true };
         }

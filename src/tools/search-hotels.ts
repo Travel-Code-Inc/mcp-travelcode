@@ -86,18 +86,21 @@ export function registerSearchHotels(server: McpServer, client: TravelCodeApiCli
   server.tool(
     "search_hotels",
     [
-      "Search hotels by location, dates, and guests. Requires a location ID from search_hotel_locations — chain the calls silently without explaining intermediate steps to the user. Returns hotel offers with prices, star ratings, and meal plans. Supports filtering by property type (hotel, apartment, villa, hostel, B&B, resort, etc.), stars, price, meal plan, and refundability.",
+      "Search hotels by location, dates, and guests. Chain location lookup → this tool silently without narrating intermediate steps to the user. Returns hotel offers with prices, star ratings, meal plans, and refundability. Supports filtering by property type, stars, price, meal plan, and full-refund only.",
       "",
-      "Role-based behavior (from get_current_user — call it once at the start of the session and reuse):",
-      "  • role = 'employee_traveller': force `guests = [{adults: 1}]`. Refuse multi-guest searches. Call get_first_client FIRST (silently, without asking) and use that traveler's nationality as `country_code`.",
-      "  • role = 'developer': prefix the user-facing reply with '[Developer mode]' so the user always sees the search ran in dev mode.",
-      "  • Other roles: standard rules below.",
+      "USER-FACING LANGUAGE (mandatory):",
+      "  • Talk in plain language. Never expose internal labels or values: search reference, location id, parameter names (country_code, guests, sort, filter, …), REST routes, or error codes. Just describe results.",
+      "  • The block at the bottom of this tool's output marked '(internal — do not show to user)' is for downstream tool calls only. Never quote it or mention it.",
       "",
-      "Standard guest data rules:",
-      "  • `country_code` is the lead-guest nationality and is REQUIRED. Pricing and availability depend on it. The same value MUST be used as the lead guest's nationality at create_order.",
-      "  • If the user did not supply nationality and the booking is for 1 adult, call get_first_client first and propose that traveler's nationality. If they accept, reuse that client at create_order.",
-      "  • For multi-adult or family bookings, ask the user only for the lead guest's nationality at this stage. Full passport details are collected later, before create_order.",
-      "  • If the booking includes children, you MUST ask each child's age up-front and pass them in `guests[].childrenAges`. The same ages will be required at create_order — pass them through as `expected_children_ages`.",
+      "Guest-data rules:",
+      "  • Nationality of the lead guest is REQUIRED for hotels — pricing depends on it. The same nationality must be reused at booking.",
+      "  • If the user did not give a nationality and the booking is for 1 adult, call get_main_client first and propose that traveler. If they accept, reuse that traveler at booking.",
+      "  • For 2+ adults or a family, ask only the lead guest's nationality at search; collect first/last name + DOB + gender for every guest later, before booking. Passport is NOT required for hotels — do not ask for it unless the user volunteers it.",
+      "  • If there are children, ask each child's age up front and pass them as childrenAges. Re-use those exact ages when calling create_order.",
+      "",
+      "Role-driven behavior (from get_current_user, called once at session start):",
+      "  • Traveller (employee_traveller): force 1 adult, no children. Call get_main_client silently and use that traveler's nationality. Refuse multi-guest searches.",
+      "  • Developer: prefix the user-facing reply with '[Developer mode]'.",
     ].join("\n"),
     searchHotelsSchema,
     async ({ location, checkin, checkout, country_code, guests, sort, offset, limit, filter }) => {
@@ -121,6 +124,7 @@ export function registerSearchHotels(server: McpServer, client: TravelCodeApiCli
         // Collect hotels from SSE events
         const hotels: HotelOffer[] = [];
         let totalCount = 0;
+        let cacheKey: string | undefined;
 
         for (const { event, data } of events) {
           if (event === "hotels") {
@@ -133,6 +137,7 @@ export function registerSearchHotels(server: McpServer, client: TravelCodeApiCli
           } else if (event === "completed") {
             const completed = data as HotelSSECompleted;
             totalCount = completed.count;
+            cacheKey = completed.cacheKey;
             // In price mode, completed contains the hotels
             if (completed.hotels && completed.hotels.length > 0) {
               hotels.length = 0; // clear intermediate results
@@ -153,7 +158,7 @@ export function registerSearchHotels(server: McpServer, client: TravelCodeApiCli
         }
 
         return {
-          content: [{ type: "text", text: formatHotelResults(hotels, totalCount) }],
+          content: [{ type: "text", text: formatHotelResults(hotels, totalCount, cacheKey) }],
         };
       } catch (error) {
         return {

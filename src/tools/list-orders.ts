@@ -25,7 +25,7 @@ export const listOrdersSchema = {
 export function registerListOrders(server: McpServer, client: TravelCodeApiClient) {
   server.tool(
     "list_orders",
-    "List user's orders with optional filtering by status, PNR, passenger name, or date range. Supports pagination and sorting.",
+    "List the user's bookings with optional filtering by status, booking reference, traveler name, or date range. Supports paging and sorting. Speak in plain language to the user — never quote internal labels, REST routes, or error codes.",
     listOrdersSchema,
     async ({ status, pnr, passenger_name, date_from, date_to, sort, sort_order, offset, limit }) => {
       try {

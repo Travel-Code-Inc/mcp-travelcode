@@ -11,7 +11,7 @@ export const checkOrderCancellationSchema = {
 export function registerCheckOrderCancellation(server: McpServer, client: TravelCodeApiClient) {
   server.tool(
     "check_order_cancellation",
-    "Check if an order can be cancelled and what the refund conditions are (penalty, deadline, estimated refund amount). Always call this before cancel_order.",
+    "Check if a booking can be cancelled and what the refund/penalty/deadline are. Always call this before cancel_order. Speak about 'the booking' and 'cancellation rules' to the user — never quote internal labels, REST routes, or error codes.",
     checkOrderCancellationSchema,
     async ({ order_id }) => {
       try {

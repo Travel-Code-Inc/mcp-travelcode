@@ -24,6 +24,19 @@ export function formatHotelLocations(data: HotelLocationSearchResponse): string 
   return lines.join("\n");
 }
 
+function htmlToPlain(html: string): string {
+  return html
+    .replace(/<\s*br\s*\/?>/gi, " ")
+    .replace(/<\/?p[^>]*>/gi, " ")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 const BOARD_NAMES: Record<string, string> = {
   RO: "Room Only",
   BI: "Breakfast Included",
@@ -34,7 +47,11 @@ const BOARD_NAMES: Record<string, string> = {
   AI: "All Inclusive",
 };
 
-export function formatHotelResults(hotels: HotelOffer[], totalCount: number): string {
+export function formatHotelResults(
+  hotels: HotelOffer[],
+  totalCount: number,
+  cacheKey?: string,
+): string {
   if (hotels.length === 0) {
     return totalCount > 0
       ? `Found ${totalCount} hotels total, but none in the current page. Try adjusting offset/limit or filters.`
@@ -61,6 +78,11 @@ export function formatHotelResults(hotels: HotelOffer[], totalCount: number): st
     const tags = [refundText, partner].filter(Boolean).join(" | ");
     if (tags) lines.push(`  ${tags}`);
     lines.push("");
+  }
+
+  if (cacheKey) {
+    lines.push("");
+    lines.push(`(internal — do not show to user) search_reference=${cacheKey}`);
   }
 
   return lines.join("\n");
@@ -107,11 +129,42 @@ export function formatHotelOffers(data: HotelOffersResponse): string {
     lines.push(`  Meal options: ${boards}`);
     lines.push(`  ${refundable ? "Refundable options available" : "Non-refundable"}`);
 
-    // Show top 3 rates
+    // Show top 3 rates with their per-rate identifiers and the actual
+    // cancellation policy text (title + description + structured rules)
+    // so the LLM can quote free-cancellation deadlines and penalties.
     const sorted = [...group.rates].sort((a, b) => a.price.nightly - b.price.nightly);
     for (const rate of sorted.slice(0, 3)) {
-      const cancel = rate.cancelPolicy.refundable ? "Refundable" : "Non-refundable";
-      lines.push(`    ${rate.price.nightly} ${rate.price.currency}/night | ${rate.boardName} | ${cancel}`);
+      const policy = rate.cancelPolicy;
+      const cancelTag = policy.refundable
+        ? policy.fullyRefundable
+          ? "Fully refundable"
+          : "Partially refundable"
+        : "Non-refundable";
+      // The wire field is `_offerId` (HotelPageService::generateOfferId
+      // produces xxxxxxxx-xxxxxxxx-xxxxxxxx-xxxxxxxx; HotelRateLookup::find
+      // looks up rates by exactly this value). Some doc revisions call it
+      // `id`, older builds emitted quoteKey/externalId — try in that order
+      // so the LLM always passes the value the booker can resolve.
+      const offerId =
+        rate._offerId ||
+        rate.id ||
+        rate.quoteKey ||
+        rate.externalId;
+      lines.push(`    ${rate.price.nightly} ${rate.price.currency}/night | ${rate.boardName} | ${cancelTag}`);
+      if (rate.roomName) lines.push(`      Room: ${rate.roomName}`);
+      if (policy.title) lines.push(`      Cancellation: ${policy.title}`);
+      if (policy.rules && policy.rules.length > 0) {
+        for (const r of policy.rules) {
+          const v = `${r.value} ${rate.price.currency}`;
+          lines.push(`        from ${r.deadline} → penalty ${v}`);
+        }
+      }
+      if (policy.description) {
+        const plain = htmlToPlain(policy.description);
+        if (plain) lines.push(`      Details: ${plain}`);
+      }
+      if (rate.remarks) lines.push(`      Remarks: ${rate.remarks}`);
+      if (offerId) lines.push(`      (internal — do not show to user) offer_reference=${offerId}`);
     }
     if (sorted.length > 3) {
       lines.push(`    ... and ${sorted.length - 3} more offers`);
@@ -119,7 +172,24 @@ export function formatHotelOffers(data: HotelOffersResponse): string {
     lines.push("");
   }
 
-  lines.push(`offersKey: ${data.offersKey}`);
+  // Top-level session id for create_order. Canonical field per the REST
+  // contract is `sessionId`; legacy deployments used `offersKey`/`offerKey`/
+  // `cacheKey`. Try them in order so the LLM always has the right token.
+  const raw = data as unknown as Record<string, unknown>;
+  const sessionId =
+    (typeof raw.sessionId === "string" && raw.sessionId) ||
+    (typeof raw.offersKey === "string" && raw.offersKey) ||
+    (typeof raw.offerKey === "string" && raw.offerKey) ||
+    (typeof raw.cacheKey === "string" && raw.cacheKey) ||
+    "";
+  lines.push("");
+  if (sessionId) {
+    lines.push(`(internal — do not show to user) search_reference=${sessionId}`);
+  } else {
+    lines.push(
+      "(internal — do not show to user) search_reference is missing; re-run the hotel search and try again.",
+    );
+  }
 
   return lines.join("\n");
 }

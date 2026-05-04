@@ -13,14 +13,16 @@ export function registerCancelOrder(server: McpServer, client: TravelCodeApiClie
   server.tool(
     "cancel_order",
     [
-      "Cancel an order.",
+      "Cancel a booking.",
+      "",
+      "USER-FACING LANGUAGE: speak in plain language ('cancel the booking', 'the penalty is …', 'the cancel window has passed'). Never quote internal labels, REST routes, or error codes.",
       "",
       "Required flow:",
-      "  1. Call check_order_cancellation first to learn the penalty / refund / deadline.",
-      "  2. Show the result to the user and get explicit confirmation — penalties can be 100%.",
-      "  3. Only then call this tool.",
+      "  1. First call check_order_cancellation to learn the penalty, refund and deadline.",
+      "  2. Tell the user the numbers in plain words and ask for explicit confirmation — penalties can be 100%.",
+      "  3. Only after explicit yes, call this tool.",
       "",
-      "Cancellation is asynchronous — use get_order to poll the final status. Idempotent: calling on an already-cancelled order returns the current status. Returns ORDER_NOT_CANCELLABLE if the cancel window has passed or the order is in a terminal state.",
+      "Cancellation is asynchronous — use get_order afterwards to confirm the final status. Calling on an already-cancelled booking returns the current status (no error). If the cancel window has passed or the booking is already terminal, the tool will report it — phrase it for the user as 'this booking can no longer be cancelled'.",
     ].join("\n"),
     cancelOrderSchema,
     async ({ order_id, reason }) => {

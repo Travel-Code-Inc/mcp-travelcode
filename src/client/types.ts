@@ -495,27 +495,40 @@ export interface HotelOfferPrice {
   deposit?: number | null;
 }
 
+export interface HotelOfferCancelRule {
+  deadline: string;     // "YYYY-MM-DD HH:MM:SS"
+  type: string;         // "amount" — currently the only documented type
+  value: number;        // penalty amount in the offer's currency
+}
+
 export interface HotelOfferCancelPolicy {
   refundable: boolean;
   title: string;
-  description?: string;
+  description?: string;       // HTML — rendered as plain text by formatter
   fullyRefundable: boolean;
-}
-
-export interface HotelOfferRoom {
-  occupancyRefId: number;
-  code: string;
-  description: string;
+  rules?: HotelOfferCancelRule[];
 }
 
 export interface HotelOfferRate {
-  partnerId: number;
+  // The booking identifier. Over the wire the field is named `_offerId`
+  // (HotelPageService.php → generateOfferId, format
+  // xxxxxxxx-xxxxxxxx-xxxxxxxx-xxxxxxxx) and HotelRateLookup::find() looks up
+  // the rate by exactly this value. Some published docs and older fixtures
+  // call it `id` — kept as a fallback alias.
+  _offerId?: string;
+  id?: string;
+  hotelCode?: string;
   boardName: string;
+  roomName?: string;
+  remarks?: string;
   price: HotelOfferPrice;
   cancelPolicy: HotelOfferCancelPolicy;
-  rooms: HotelOfferRoom[];
-  externalId: string;
-  quoteKey: string;
+
+  // Legacy / alias fields — present in older API builds, never required.
+  partnerId?: number;
+  externalId?: string;
+  quoteKey?: string;
+  rooms?: Array<{ occupancyRefId?: number; code?: string; description?: string }>;
 }
 
 export interface HotelOfferRoomGroup {
@@ -546,7 +559,12 @@ export interface HotelProperty {
 }
 
 export interface HotelOffersResponse {
-  offersKey: string;
+  // Canonical field per the published REST contract.
+  sessionId?: string;
+  // Legacy aliases kept for tolerance — older deployments / fixtures use them.
+  offersKey?: string;
+  offerKey?: string;
+  cacheKey?: string;
   property: HotelProperty;
   offers: Record<string, HotelOfferRoomGroup>;
   bronevikId?: number;

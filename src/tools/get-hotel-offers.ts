@@ -30,9 +30,13 @@ export function registerGetHotelOffers(server: McpServer, client: TravelCodeApiC
   server.tool(
     "get_hotel_offers",
     [
-      "Get all available rooms and rates for a specific hotel from all suppliers. Returns room types, prices, meal plans, and cancellation policies. The hotel ID comes from search_hotels results — do not explain this to the user, just chain the calls silently.",
+      "Show all rooms and rates for one hotel: room types, prices, meal plans, and cancellation rules. Chain this after search_hotels silently — do not narrate it as a separate step to the user.",
       "",
-      "Pass the SAME `country_code` and `guests` (including childrenAges) that were used in search_hotels. Mismatching here will return different prices than the user saw on the list.",
+      "USER-FACING LANGUAGE (mandatory):",
+      "  • Speak about 'rooms', 'rates', 'free cancellation until <date>', 'penalty after <date>', 'refundable / non-refundable / partially refundable'. Never quote internal labels: hotel id, search reference, offer reference, parameter names, REST routes, error codes.",
+      "  • The block marked '(internal — do not show to user)' is for downstream tool calls only. Never quote or mention it.",
+      "",
+      "Pass the SAME nationality and guest composition (including children's ages) that were used in search_hotels — otherwise prices and availability will diverge.",
     ].join("\n"),
     getHotelOffersSchema,
     async ({ id, checkin, checkout, country_code, guests, location }) => {

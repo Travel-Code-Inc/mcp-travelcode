@@ -11,7 +11,7 @@ export const checkOrderModificationSchema = {
 export function registerCheckOrderModification(server: McpServer, client: TravelCodeApiClient) {
   server.tool(
     "check_order_modification",
-    "Check if an order can be modified and what changes are allowed (contact, passport, rebook, baggage). Returns the list of services with their allowed change types. Always call this before modify_order.",
+    "Check if a booking can be changed and what kinds of change are allowed (contact info, passport, rebook, baggage). Always call this before modify_order. Speak about 'the booking' and 'allowed changes' to the user — never quote internal labels, REST routes, or error codes.",
     checkOrderModificationSchema,
     async ({ order_id }) => {
       try {

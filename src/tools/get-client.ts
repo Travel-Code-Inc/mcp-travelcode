@@ -11,7 +11,7 @@ export const getClientSchema = {
 export function registerGetClient(server: McpServer, client: TravelCodeApiClient) {
   server.tool(
     "get_client",
-    "Get full details for a specific client (tourist) by ID, including passport documents and loyalty memberships needed for create_order. Typical flow: search_clients → pick the right result → this tool to pull docs + memberships → create_order.",
+    "Get full details of a saved traveler — passport documents and loyalty memberships needed for booking. Typical flow: search_clients → pick the right person → this tool → create_order. Speak about 'this traveler', 'their passport', 'their loyalty programs' to the user; never quote internal labels, REST routes, or error codes.",
     getClientSchema,
     async ({ client_id }) => {
       try {

@@ -34,7 +34,7 @@ whole branching below.
          traveller         developer           other role
               │                 │                  │
               ▼                 ▼                  ▼
-      get_first_client    standard flow      ┌─────────────┐
+      get_main_client    standard flow      ┌─────────────┐
       force adults=1      + [Developer       │ how many    │
       use returned          mode] prefix     │ adults?     │
       nationality                            └──────┬──────┘
@@ -49,7 +49,7 @@ whole branching below.
               │                yes            no          nationality
               │                  │             │              │
               │                  ▼             ▼              │
-              │            search_hotels  get_first_client    │
+              │            search_hotels  get_main_client    │
               │                            "use Ivan, BY?"    │
               │                            │      │           │
               │                          yes      no          │
@@ -78,7 +78,7 @@ whole branching below.
    single most-common reason a booking later returns a different rate.
 2. The same `country_code` MUST be used as the lead guest's `nationality`
    at `create_order`. Do not change it between search and booking.
-3. For 1-adult searches with no nationality, `get_first_client` is the
+3. For 1-adult searches with no nationality, `get_main_client` is the
    short-circuit that lets the user accept their own profile in one tap
    instead of typing details.
 4. For multi-adult / family searches, only the lead guest's nationality is
@@ -106,7 +106,7 @@ whole branching below.
    confirm only first/   prefix reply with     was a default
    last name; reuse      [Developer mode];     traveler proposed
    tourist from          continue with         at search time?
-   get_first_client      standard flow              │
+   get_main_client      standard flow              │
               │                 │              ┌────┴────┐
               │                 │            yes        no
               │                 │              │         │
@@ -187,7 +187,7 @@ session start
 get_current_user → role=employee_traveller
     │
     ▼
-get_first_client (silent, no question)
+get_main_client (silent, no question)
     │
     ▼
 search_hotels with adults=1, country_code = client.nationality
@@ -265,7 +265,7 @@ returns the current status, not an error.
 |------------------------------|----------------------------------------------------|
 | `get_current_user`           | once per session, drives all branching             |
 | `search_hotel_locations`     | resolve free-text city to a location id            |
-| `get_first_client`           | propose / load the user's default tourist          |
+| `get_main_client`           | propose / load the user's default tourist          |
 | `search_clients` + `get_client` | pick a non-default tourist by name              |
 | `search_hotels`              | find offers for a given location and dates         |
 | `get_hotel_offers`           | room-level rates for a chosen hotel                |

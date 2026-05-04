@@ -21,7 +21,7 @@ export const modifyOrderSchema = {
 export function registerModifyOrder(server: McpServer, client: TravelCodeApiClient) {
   server.tool(
     "modify_order",
-    "Modify an existing order. Modification is asynchronous — use get_order to poll for the result. Call check_order_modification first to see which changes are allowed. Supported types: contact, passport, rebook, baggage.",
+    "Change an existing booking: contact info, passport, dates (rebook), or add baggage. Always call check_order_modification first to learn which changes are allowed for this booking. Modification is asynchronous — use get_order afterwards to confirm the result. Speak about 'the booking' and 'the change' in plain language to the user — never quote internal labels, REST routes, or error codes.",
     modifyOrderSchema,
     async ({ order_id, type, changes }) => {
       try {

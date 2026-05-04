@@ -14,18 +14,18 @@ export function registerGetCurrentUser(server: McpServer, client: TravelCodeApiC
     [
       "Return the authenticated user's profile and role. CALL THIS ONCE at the very start of a conversation, before the first search or booking, and reuse the result for the rest of the session.",
       "",
-      "The role drives several mandatory behaviors that the other tools rely on:",
+      "USER-FACING LANGUAGE: this is internal context. Never narrate to the user that you 'fetched their profile' or quote role codes / labels — just behave according to the rules below.",
       "",
-      "  • role = 'employee_traveller' (Тревелер): the user has access to exactly ONE tourist record (themselves).",
-      "      - Always book for 1 person only — refuse multi-guest searches/bookings up front and explain why.",
-      "      - At the start of any search call get_first_client and use that traveler's nationality automatically (no need to ask).",
-      "      - Reuse the same traveler at create_order. For HOTELS: just confirm first/last name with the user before booking, no other questions. For FLIGHTS: confirm name and, if the traveler has multiple documents, ask which one to use; otherwise auto-pick the only document.",
+      "Behaviors driven by role:",
       "",
-      "  • role = 'developer': mark the session as 'developer mode'. At the start of every search and at the start of every booking response, prefix the message with a clear marker like '[Developer mode]' so the user always knows the call is going against the dev environment / dev account.",
+      "  • Traveller (employee_traveller): the user has exactly ONE saved traveler (themselves).",
+      "      - Always book for 1 person only — refuse multi-guest searches/bookings and explain why in plain words.",
+      "      - At the start of any search, silently load the traveler with get_main_client and use their nationality.",
+      "      - Reuse the same traveler at booking. Hotels: just confirm first/last name. Flights: confirm name and pick a document — if more than one is on file, ask the user which to use; if only one, take it automatically.",
+      "",
+      "  • Developer: mark the session as 'developer mode'. Prefix every search and booking reply with '[Developer mode]' so the user always knows calls run against the dev environment.",
       "",
       "  • Other roles: standard flow described in each tool's own documentation.",
-      "",
-      "Return shape: { id, role (numeric), roleName (e.g. 'employee_traveller', 'developer', 'director', 'employee', ...), firstName, lastName, email, agencyId, isTraveller, isDeveloper }.",
     ].join("\n"),
     getCurrentUserSchema,
     async () => {
@@ -36,30 +36,26 @@ export function registerGetCurrentUser(server: McpServer, client: TravelCodeApiC
         const isTraveller = role === USER_ROLE.EMPLOYEE_TRAVELLER;
         const isDeveloper = role === USER_ROLE.DEVELOPER;
 
-        const lines: string[] = [];
-        lines.push(`User #${me.id} — role: ${roleName} (${role})`);
+        const lines: string[] = ["(internal — do not show to user)"];
         const name = [me.firstName, me.lastName].filter(Boolean).join(" ");
-        if (name) lines.push(`Name: ${name}`);
-        if (me.email) lines.push(`Email: ${me.email}`);
-        if (me.agencyId !== undefined) lines.push(`Agency id: ${me.agencyId}`);
-
+        if (name) lines.push(`name: ${name}`);
+        if (me.email) lines.push(`email: ${me.email}`);
+        lines.push(`role: ${roleName}`);
+        lines.push(`is_traveller: ${isTraveller}`);
+        lines.push(`is_developer: ${isDeveloper}`);
         lines.push("");
         if (isTraveller) {
           lines.push(
-            "MODE: traveller — book for 1 person only, always reuse the user's default tourist (get_first_client). Hotels: only confirm name/lastname before booking. Flights: also pick a document if the tourist has multiple.",
+            "Behavior: book for 1 person only; load the saved traveler silently with get_main_client and reuse them at booking. For hotels just confirm first/last name; for flights also pick a document.",
           );
         } else if (isDeveloper) {
           lines.push(
-            "MODE: developer — prefix every search and booking response with '[Developer mode]' so the user always sees that calls go against the dev environment.",
+            "Behavior: prefix every search and booking reply to the user with '[Developer mode]'.",
           );
         } else {
-          lines.push("MODE: standard — follow each tool's own guidance.");
+          lines.push("Behavior: standard flow — follow each tool's own guidance.");
         }
-
-        lines.push("");
-        lines.push(
-          `Flags: isTraveller=${isTraveller}, isDeveloper=${isDeveloper}. Reuse this for the rest of the session — do not call get_current_user again.`,
-        );
+        lines.push("Reuse this context for the rest of the session — do not call this tool again.");
 
         return { content: [{ type: "text", text: lines.join("\n") }] };
       } catch (error) {

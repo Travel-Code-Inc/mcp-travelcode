@@ -11,7 +11,7 @@ export const getOrderSchema = {
 export function registerGetOrder(server: McpServer, client: TravelCodeApiClient) {
   server.tool(
     "get_order",
-    "Get full details of an order including passengers, services, tickets, and payment status.",
+    "Get full details of a booking — travelers, services, tickets, and payment status. Speak about 'the booking' to the user; never quote internal labels, REST routes, or error codes.",
     getOrderSchema,
     async ({ order_id }) => {
       try {
