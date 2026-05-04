@@ -10,7 +10,7 @@
 
 <p align="center">
   <a href="https://www.npmjs.com/package/mcp-travelcode"><img src="https://img.shields.io/npm/v/mcp-travelcode.svg" alt="npm version"></a>
-  <a href="https://github.com/egorceo/mcp-travelcode/blob/main/LICENSE"><img src="https://img.shields.io/npm/l/mcp-travelcode.svg" alt="MIT License"></a>
+  <a href="https://github.com/Travel-Code-Inc/mcp-travelcode/blob/main/LICENSE"><img src="https://img.shields.io/npm/l/mcp-travelcode.svg" alt="MIT License"></a>
   <a href="https://www.npmjs.com/package/mcp-travelcode"><img src="https://img.shields.io/npm/dm/mcp-travelcode.svg" alt="Downloads"></a>
   <a href="https://nodejs.org/"><img src="https://img.shields.io/node/v/mcp-travelcode.svg" alt="Node.js"></a>
   <a href="https://modelcontextprotocol.io"><img src="https://img.shields.io/badge/MCP-compatible-blue" alt="MCP Compatible"></a>
@@ -342,7 +342,7 @@ npx mcp-travelcode-auth logout
 ## Development
 
 ```bash
-git clone https://github.com/egorceo/mcp-travelcode.git
+git clone https://github.com/Travel-Code-Inc/mcp-travelcode.git
 cd mcp-travelcode
 npm install
 

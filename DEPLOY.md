@@ -30,7 +30,7 @@ sudo apt-get install -y nodejs nginx certbot python3-certbot-nginx fail2ban git
 ### 2. Application
 
 ```bash
-sudo git clone https://github.com/egorceo/mcp-travelcode.git /opt/mcp-travelcode
+sudo git clone https://github.com/Travel-Code-Inc/mcp-travelcode.git /opt/mcp-travelcode
 sudo useradd --system --home /opt/mcp-travelcode --shell /usr/sbin/nologin mcp
 sudo chown -R mcp:mcp /opt/mcp-travelcode
 
