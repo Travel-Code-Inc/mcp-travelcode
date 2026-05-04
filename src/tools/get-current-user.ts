@@ -16,6 +16,8 @@ export function registerGetCurrentUser(server: McpServer, client: TravelCodeApiC
       "",
       "USER-FACING LANGUAGE: this is internal context. Never narrate to the user that you 'fetched their profile' or quote role codes / labels — just behave according to the rules below.",
       "",
+      "Right after this tool returns (any role), if the upcoming intent is a search/booking and you don't yet know which traveler to use, also call get_main_client and remember the saved traveler. Their nationality is the default for the lead-guest nationality; this prevents you from inventing a country. For the traveller role this is mandatory; for other roles do it pre-emptively unless the user has already named someone else.",
+      "",
       "Behaviors driven by role:",
       "",
       "  • Traveller (employee_traveller): the user has exactly ONE saved traveler (themselves).",
