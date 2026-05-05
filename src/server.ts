@@ -25,6 +25,7 @@ import { registerGetMainClient } from "./tools/get-main-client.js";
 import { registerGetClient } from "./tools/get-client.js";
 import { registerSearchClients } from "./tools/search-clients.js";
 import { registerGetCurrentUser } from "./tools/get-current-user.js";
+import { registerGetWalletBalance } from "./tools/get-wallet-balance.js";
 
 export interface CreatedServer {
   server: McpServer;
@@ -76,6 +77,9 @@ export function createServer(config: TravelCodeConfig): CreatedServer {
   registerGetMainClient(server, client);
   registerGetClient(server, client);
   registerSearchClients(server, client);
+
+  // Wallet
+  registerGetWalletBalance(server, client);
 
   return { server, apiClient: client };
 }

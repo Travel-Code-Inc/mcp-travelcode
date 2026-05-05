@@ -706,6 +706,26 @@ export interface CurrentUser {
   [key: string]: unknown;
 }
 
+// --- Wallet ---
+
+/**
+ * Response from GET /v1/wallet. The reference doc says only "current balance
+ * per currency", so we keep the shape permissive: parse `balances[]` first
+ * (most common multi-currency layout), fall back to a flat `{amount,currency}`
+ * (single-currency accounts). Unknown extra fields pass through untouched.
+ */
+export interface WalletBalanceEntry {
+  currency: string;
+  amount: number;
+}
+
+export interface WalletBalance {
+  balances?: WalletBalanceEntry[];
+  amount?: number;
+  currency?: string;
+  [key: string]: unknown;
+}
+
 // --- Errors ---
 
 /**
