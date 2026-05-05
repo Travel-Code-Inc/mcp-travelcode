@@ -113,10 +113,10 @@ export const createOrderSchema = {
     .optional()
     .describe("Rooms (each with its guests) for a hotel booking. Required for hotels."),
   payment_method: z
-    .string()
+    .enum(["deposit", "card", "bill"])
     .optional()
     .describe(
-      "Optional preferred payment method. Common values: 'card', 'deposit' (corp wallet balance), 'bill' (invoice). Defaults vary per account — omit to use the account default.",
+      "How to pay. Pick using the deposit-first rule: call get_wallet_balance first; if the deposit balance in the offer's currency covers the price, pass 'deposit'; otherwise pass 'card'. Use 'bill' only when the user explicitly asks for invoice. Omit to fall back to the account default.",
     ),
   book_key: z
     .string()
@@ -191,6 +191,14 @@ export function registerCreateOrder(server: McpServer, client: TravelCodeApiClie
       "How to wire the call (internal — never narrate to the user):",
       "  • Hotels: take the rate the user picked from get_hotel_offers, copy its offer_reference into offer_id and the search_reference at the bottom of get_hotel_offers (or, if missing, the search_reference at the bottom of search_hotels) into session_id, build rooms[].guests, set service_type='hotel'.",
       "  • Flights: take the search_reference from search_flights (or get_flight_results), the position of the chosen flight in the result list (1-based index → 0-based number), pass passengers, set service_type='flight'.",
+      "",
+      "Payment route — DETERMINISTIC, no guessing:",
+      "  • Before this call, run get_wallet_balance for any authenticated user.",
+      "  • If the deposit balance in the offer's currency is greater than or equal to the offer total: pass payment_method='deposit'.",
+      "  • Otherwise: pass payment_method='card'.",
+      "  • If the user explicitly asked for an invoice, pass 'bill' instead — that overrides the rule above.",
+      "  • If get_wallet_balance fails (e.g. unauthenticated guest flow), omit payment_method and let the server pick its account default.",
+      "  • In the user-facing message say 'we'll charge your deposit (X left after this)' or 'we'll charge your card' — never expose payment_method, deposit, card, bill as labels.",
       "",
       "Traveler data:",
       "  • FLIGHT — passport (number, expiry, document nationality) is mandatory. Ask the user if not already on the saved profile.",
