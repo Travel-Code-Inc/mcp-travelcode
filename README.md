@@ -47,7 +47,19 @@ Built for the MCP ecosystem — works with **Claude Desktop**, **Claude Code**, 
 
 ## Quick Start
 
-### Hosted server (recommended)
+There are three ways to use MCP TravelCode. Pick one:
+
+| | What it is | Best for |
+|---|---|---|
+| **[A. Hosted server](#a--hosted-server-zero-install)** | Use our managed instance at `mcp.travel-code.com` | Fastest start; works with Claude Web, Desktop, mobile, IDE clients |
+| **[B. Local stdio](#b--local-stdio-npx-mcp-travelcode)** | Run as a child process via `npx` on your machine | Single user, desktop client, no infra |
+| **[C. Self-host HTTP server](#c--self-host-http-server)** | Deploy your own HTTP instance under your domain | Teams, compliance, custom OAuth AS — see [DEPLOY.md](DEPLOY.md) |
+
+A and C use the **Streamable HTTP** transport (multi-client, per-user OAuth). B uses **stdio** (one process per user, token in a local file).
+
+---
+
+### A — Hosted server (zero install)
 
 No install, no local token files. Point any MCP-capable client at:
 
@@ -70,16 +82,22 @@ supports HTTP+OAuth MCP servers.
 Once connected, the assistant can search flights, find hotels, view and manage
 your orders, and pull delay stats — on behalf of the signed-in TravelCode user.
 
-### Local install & authenticate (stdio)
+---
 
-For local development or air-gapped setups:
+### B — Local stdio (`npx mcp-travelcode`)
+
+For desktop clients without HTTP+OAuth support, or air-gapped/offline setups.
+Each user runs the server as a child process on their own machine.
 
 ```bash
-# 1. Authenticate with your TravelCode account (opens browser, one-time)
+# Authenticate once with your TravelCode account (opens browser)
 npx mcp-travelcode-auth auth
 ```
 
-### Claude Desktop (local stdio)
+The token is saved to `~/.travelcode/tokens.json` and auto-refreshes.
+Configure your client to spawn `npx mcp-travelcode` (examples below).
+
+#### Claude Desktop
 
 Add to your `claude_desktop_config.json`:
 
@@ -96,13 +114,13 @@ Add to your `claude_desktop_config.json`:
 
 Restart Claude Desktop — done! Ask Claude to search flights, book hotels, or check flight status.
 
-### Claude Code
+#### Claude Code
 
 ```bash
 claude mcp add travelcode -- npx mcp-travelcode
 ```
 
-### ChatGPT Desktop
+#### ChatGPT Desktop
 
 Go to **Settings → Tools → Add MCP Server**, then add:
 
@@ -113,7 +131,7 @@ Go to **Settings → Tools → Add MCP Server**, then add:
 }
 ```
 
-### Gemini / Google AI Studio
+#### Gemini / Google AI Studio
 
 Add to your MCP server configuration:
 
@@ -128,7 +146,7 @@ Add to your MCP server configuration:
 }
 ```
 
-### GitHub Copilot (VS Code)
+#### GitHub Copilot (VS Code)
 
 Add to your VS Code `settings.json`:
 
@@ -143,7 +161,7 @@ Add to your VS Code `settings.json`:
 }
 ```
 
-### Cursor
+#### Cursor
 
 Add to `.cursor/mcp.json` in your project:
 
@@ -158,7 +176,7 @@ Add to `.cursor/mcp.json` in your project:
 }
 ```
 
-### Windsurf / Cline / Continue
+#### Windsurf / Cline / Continue
 
 Add to your MCP configuration (typically `mcp_config.json` or settings):
 
@@ -173,7 +191,7 @@ Add to your MCP configuration (typically `mcp_config.json` or settings):
 }
 ```
 
-### Zed
+#### Zed
 
 Add to your Zed `settings.json`:
 
@@ -190,11 +208,11 @@ Add to your Zed `settings.json`:
 }
 ```
 
-### JetBrains IDEs (IntelliJ, WebStorm, PyCharm)
+#### JetBrains IDEs (IntelliJ, WebStorm, PyCharm)
 
 Go to **Settings → Tools → AI Assistant → MCP Servers → Add**, set command to `npx` with args `mcp-travelcode`.
 
-### OpenClaw
+#### OpenClaw
 
 ```yaml
 mcp:
@@ -204,15 +222,42 @@ mcp:
       args: ["mcp-travelcode"]
 ```
 
-### Streamable HTTP Transport (Remote / Multi-client)
+---
 
-Run an HTTP server locally (or use the hosted instance at `https://mcp.travel-code.com/mcp`):
+### C — Self-host HTTP server
+
+Deploy your own HTTP instance under your domain. The same flow as the
+hosted instance — clients connect by URL, OAuth happens in the browser,
+tokens come in the `Authorization: Bearer` header on every request — but
+running on your infra and (optionally) against your own OAuth Authorization
+Server.
+
+For a quick local smoke test:
 
 ```bash
-npm run start:http    # Starts on http://localhost:3000/mcp
+npm run build
+PORT=3000 \
+RESOURCE_URI=http://localhost:3000 \
+OAUTH_ISSUER=https://travel-code.com \
+TRAVELCODE_API_BASE_URL=https://api.travel-code.com/v1 \
+  npm run start:http
+# → http://localhost:3000/mcp
 ```
 
-Connect any MCP client to `http://localhost:3000/mcp` using the **Streamable HTTP** transport (MCP spec 2025-03-26+). Per-user OAuth tokens are read from the `Authorization: Bearer` header on each request.
+For a full production deploy (systemd + nginx + TLS + fail2ban), see
+**[DEPLOY.md](DEPLOY.md)**. It documents the reference setup we run for
+`mcp.travel-code.com` and lists the placeholders to substitute when
+deploying under your own domain.
+
+Requirements for self-hosting against your own AS:
+
+- An OAuth 2.1 Authorization Server that exposes RFC 8414 metadata (or you
+  proxy it from the sidecar, as we do for `travel-code.com`).
+- Issued scopes match `SCOPES_SUPPORTED` in `src/http-server.ts` (currently
+  `flights:*`, `airports:read`, `airlines:read`, `hotels:search`,
+  `tourist:read`).
+- Tokens accepted by the upstream TravelCode REST API in the
+  `Authorization: Bearer` header.
 
 ## Supported Clients
 

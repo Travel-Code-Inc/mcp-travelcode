@@ -1,6 +1,6 @@
 {
   "name": "mcp-travelcode",
-  "version": "1.0.6",
+  "version": "1.1.0",
   "description": "MCP server for TravelCode — flights, hotels, orders. Search flights & hotels, manage bookings via AI assistants.",
   "type": "module",
   "main": "./build/index.js",

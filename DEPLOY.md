@@ -1,7 +1,36 @@
-# Production deployment — `mcp.travel-code.com`
+# HTTP server deployment
 
-This documents the actual production setup for the hosted MCP server at
-`https://mcp.travel-code.com/mcp`. For local dev, see the README.
+This documents the production setup we run for the hosted MCP server at
+`https://mcp.travel-code.com/mcp`. The same recipe works for **self-hosting
+your own instance** under a different domain — just substitute the
+placeholders below throughout this document.
+
+For local dev / `npx` (stdio) usage, see the README.
+
+## Self-host: substitute these placeholders
+
+When adapting this guide for your own deployment, replace every occurrence
+of the values on the left with your own:
+
+| Placeholder | This guide uses | Substitute with |
+|---|---|---|
+| MCP server domain | `mcp.travel-code.com` | `<your-mcp-domain>` |
+| Admin / Let's Encrypt email | `ops@travel-code.com` | `<your-admin-email>` |
+| OAuth Authorization Server origin | `https://travel-code.com` | `<your-as-issuer>` (must implement RFC 8414, or you proxy AS metadata from the sidecar as we do) |
+| TravelCode REST API | `https://api.travel-code.com/v1` | leave as-is — the API is the same upstream regardless of where the sidecar runs |
+| systemd unit name | `mcp-travelcode` | any name; pick one and use it consistently |
+| Repo to clone | `https://github.com/Travel-Code-Inc/mcp-travelcode.git` | this repo (or your fork) |
+
+Self-host caveats:
+
+- `SCOPES_SUPPORTED` in `src/http-server.ts` is hard-coded
+  (`flights:*`, `airports:read`, `airlines:read`, `hotels:search`,
+  `tourist:read`). Your AS must issue the same set, or edit the array.
+- The sidecar proxies AS metadata at
+  `/.well-known/oauth-authorization-server` because Claude.ai discovers it
+  from the resource origin, not from PRM's `authorization_servers` field.
+  If your AS exposes RFC 8414 metadata directly *and* your clients honor
+  PRM, you can drop the proxy block from `src/http-server.ts`.
 
 ## Stack
 
