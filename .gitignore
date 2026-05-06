@@ -1,7 +1,9 @@
 node_modules/
 build/
 .env
+*.env
 *.tsbuildinfo
 .git-credentials
 .npm/
 .claude/
+.ssh/
