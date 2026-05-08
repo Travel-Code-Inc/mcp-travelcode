@@ -25,6 +25,16 @@ import { registerGetMainClient } from "./tools/get-main-client.js";
 import { registerGetClient } from "./tools/get-client.js";
 import { registerSearchClients } from "./tools/search-clients.js";
 import { registerGetCurrentUser } from "./tools/get-current-user.js";
+import { registerListNotificationIntegrations } from "./tools/list-notification-integrations.js";
+import { registerGetTelegramStatus } from "./tools/get-telegram-status.js";
+import { registerGetSlackStatus } from "./tools/get-slack-status.js";
+import { registerGetSlackInstallUrl } from "./tools/get-slack-install-url.js";
+import { registerInitTelegramLink } from "./tools/init-telegram-link.js";
+import { registerActivateNotificationIntegration } from "./tools/activate-notification-integration.js";
+import { registerDisconnectNotificationIntegration } from "./tools/disconnect-notification-integration.js";
+import { registerListNotificationSettings } from "./tools/list-notification-settings.js";
+import { registerGetNotificationSetting } from "./tools/get-notification-setting.js";
+import { registerUpdateNotificationSetting } from "./tools/update-notification-setting.js";
 
 export interface CreatedServer {
   server: McpServer;
@@ -76,6 +86,18 @@ export function createServer(config: TravelCodeConfig): CreatedServer {
   registerGetMainClient(server, client);
   registerGetClient(server, client);
   registerSearchClients(server, client);
+
+  // Notification integrations
+  registerListNotificationIntegrations(server, client);
+  registerGetTelegramStatus(server, client);
+  registerGetSlackStatus(server, client);
+  registerGetSlackInstallUrl(server, client);
+  registerInitTelegramLink(server, client);
+  registerActivateNotificationIntegration(server, client);
+  registerDisconnectNotificationIntegration(server, client);
+  registerListNotificationSettings(server, client);
+  registerGetNotificationSetting(server, client);
+  registerUpdateNotificationSetting(server, client);
 
   return { server, apiClient: client };
 }

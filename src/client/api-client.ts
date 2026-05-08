@@ -48,6 +48,17 @@ export class TravelCodeOfferChangedError extends Error {
   }
 }
 
+function formatFieldErrors(errors: unknown): string {
+  if (!errors || typeof errors !== "object") return "";
+  const parts: string[] = [];
+  for (const [field, messages] of Object.entries(errors as Record<string, unknown>)) {
+    const list = Array.isArray(messages) ? messages : [messages];
+    const text = list.filter((m) => typeof m === "string" && m.length > 0).join("; ");
+    if (text) parts.push(`${field}: ${text}`);
+  }
+  return parts.join(" | ");
+}
+
 export class TravelCodeApiClient {
   private baseUrl: string;
   private token: string;
@@ -80,10 +91,8 @@ export class TravelCodeApiClient {
     this.token = token;
   }
 
-  async get<T>(path: string, params?: Record<string, string | number | boolean | undefined>): Promise<T> {
-    await this.ensureValidToken();
+  private buildUrl(path: string, params?: Record<string, string | number | boolean | undefined>): string {
     const url = new URL(`${this.baseUrl}${path}`);
-
     if (params) {
       for (const [key, value] of Object.entries(params)) {
         if (value !== undefined) {
@@ -91,29 +100,60 @@ export class TravelCodeApiClient {
         }
       }
     }
+    return url.toString();
+  }
 
-    const response = await fetch(url.toString(), {
+  async get<T>(path: string, params?: Record<string, string | number | boolean | undefined>): Promise<T> {
+    await this.ensureValidToken();
+    const response = await fetch(this.buildUrl(path, params), {
       method: "GET",
       headers: this.headers(),
     });
-
     return this.handleResponse<T>(response);
   }
 
-  async post<T>(path: string, body?: unknown, extraHeaders?: Record<string, string>): Promise<T> {
+  async post<T>(
+    path: string,
+    body?: unknown,
+    params?: Record<string, string | number | boolean | undefined>,
+    extraHeaders?: Record<string, string>,
+  ): Promise<T> {
     await this.ensureValidToken();
-    const headers: Record<string, string> = {
-      ...this.headers(),
-      "Content-Type": "application/json",
-      ...extraHeaders,
-    };
-
-    const response = await fetch(`${this.baseUrl}${path}`, {
+    const response = await fetch(this.buildUrl(path, params), {
       method: "POST",
-      headers,
+      headers: {
+        ...this.headers(),
+        "Content-Type": "application/json",
+        ...extraHeaders,
+      },
       body: body !== undefined ? JSON.stringify(body) : undefined,
     });
+    return this.handleResponse<T>(response);
+  }
 
+  async patch<T>(
+    path: string,
+    body?: unknown,
+    params?: Record<string, string | number | boolean | undefined>,
+  ): Promise<T> {
+    await this.ensureValidToken();
+    const response = await fetch(this.buildUrl(path, params), {
+      method: "PATCH",
+      headers: {
+        ...this.headers(),
+        "Content-Type": "application/json",
+      },
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+    });
+    return this.handleResponse<T>(response);
+  }
+
+  async delete<T>(path: string, params?: Record<string, string | number | boolean | undefined>): Promise<T> {
+    await this.ensureValidToken();
+    const response = await fetch(this.buildUrl(path, params), {
+      method: "DELETE",
+      headers: this.headers(),
+    });
     return this.handleResponse<T>(response);
   }
 
@@ -268,15 +308,18 @@ export class TravelCodeApiClient {
       const errorBody = parsedBody as ApiErrorResponse;
       // Canonical envelope: { error: { code, message, details } }.
       // Legacy flat shape: { code, message } or { text }.
+      // Field validation shape: { errors: { fieldA: ["msg"], fieldB: ["msg"] } }.
       const enveloped = errorBody.error;
       const codeStr =
         (enveloped && typeof enveloped.code === "string" && enveloped.code) ||
         (typeof errorBody.code === "string" && errorBody.code) ||
         "";
+      const fieldErrors = formatFieldErrors(errorBody.errors);
       const message =
         (enveloped && enveloped.message) ||
         errorBody.message ||
         errorBody.text ||
+        fieldErrors ||
         `HTTP ${response.status}`;
       errorMessage = codeStr ? `${codeStr}: ${message}` : message;
     } catch {

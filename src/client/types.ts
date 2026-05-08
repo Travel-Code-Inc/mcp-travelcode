@@ -706,6 +706,84 @@ export interface CurrentUser {
   [key: string]: unknown;
 }
 
+// --- Notifications ---
+
+export type NotificationChannel = "email" | "telegram" | "slack";
+
+export type NotificationStatus = "connected" | "inactive" | "not_connected";
+
+export interface NotificationIntegration {
+  channel: NotificationChannel;
+  title: string;
+  active: boolean;
+  connected: boolean;
+  status: NotificationStatus;
+  settings: Record<string, unknown> | unknown[];
+}
+
+export interface NotificationIntegrationsResponse {
+  items: NotificationIntegration[];
+}
+
+export interface TelegramStatus {
+  connected: boolean;
+  username: string | null;
+  chatId: string | null;
+}
+
+export interface SlackStatus {
+  connected: boolean;
+  teamName: string | null;
+  teamId: string | null;
+}
+
+export interface SlackInstallUrlResponse {
+  url: string;
+  expiresAt: number;
+}
+
+export interface TelegramInitResponse {
+  url: string;
+  nonce: string;
+  expiresAt: number;
+}
+
+export interface NotificationSettingItem {
+  id: number;
+  typeCode: string;
+  title: string;
+  description: string | null;
+  groupCode: string;
+  groupTitle: string;
+  value: boolean;
+  available: boolean;
+}
+
+export interface NotificationSettingsList {
+  channel: NotificationChannel;
+  active: boolean;
+  connected: boolean;
+  items: NotificationSettingItem[];
+}
+
+export interface NotificationSettingDetail extends NotificationSettingItem {
+  channel: NotificationChannel;
+  channelActive: boolean;
+  connected: boolean;
+}
+
+export interface NotificationUpdateResponse {
+  success: boolean;
+  channel: NotificationChannel;
+  typeCode: string;
+  value: boolean;
+}
+
+export interface NotificationToggleResponse {
+  success: boolean;
+  active: boolean;
+}
+
 // --- Errors ---
 
 /**
@@ -728,4 +806,6 @@ export interface ApiErrorResponse extends ApiErrorEnvelope {
   code?: number | string;
   message?: string;
   text?: string;
+  // Field-validation shape: { errors: { field: ["msg"] } }
+  errors?: Record<string, string[] | string>;
 }
