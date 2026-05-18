@@ -784,6 +784,42 @@ export interface NotificationToggleResponse {
   active: boolean;
 }
 
+// --- Email BCC (per-group BCC for the email channel) ---
+
+export type EmailBccStatus = "pending" | "confirmed";
+
+export interface EmailBccAddress {
+  id: number;
+  email: string;
+  status: EmailBccStatus;
+  confirmedAt: number | null;
+  createdAt: number;
+  canRequestConfirmation: boolean;
+  nextRequestAvailableAt: number | null;
+  tokenExpiresAt: number | null;
+}
+
+export interface EmailBccGroup {
+  groupCode: string;
+  groupTitle: string;
+  addresses: EmailBccAddress[];
+}
+
+export interface EmailBccListResponse {
+  limit: number;
+  groups: EmailBccGroup[];
+}
+
+export interface EmailBccMutationResponse {
+  success: boolean;
+  groupCode: string;
+  address: EmailBccAddress;
+}
+
+export interface EmailBccDeleteResponse {
+  success: boolean;
+}
+
 // --- Errors ---
 
 /**

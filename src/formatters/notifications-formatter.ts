@@ -1,4 +1,7 @@
 import {
+  EmailBccAddress,
+  EmailBccListResponse,
+  EmailBccMutationResponse,
   NotificationChannel,
   NotificationIntegration,
   NotificationIntegrationsResponse,
@@ -138,4 +141,85 @@ export function formatActivate(channel: NotificationChannel): string {
 
 export function formatDisconnect(channel: NotificationChannel): string {
   return `${channelTitle(channel)} disconnected. Credentials cleared.`;
+}
+
+function formatUnixTime(ts: number | null | undefined): string {
+  if (!ts) return "";
+  return new Date(ts * 1000).toISOString();
+}
+
+function formatBccAddress(a: EmailBccAddress): string {
+  const parts: string[] = [`    - ${a.email} [${a.status}] (id: ${a.id})`];
+  if (a.status === "confirmed" && a.confirmedAt) {
+    parts.push(`      confirmed at ${formatUnixTime(a.confirmedAt)}`);
+  }
+  if (a.status === "pending") {
+    if (a.canRequestConfirmation) {
+      parts.push("      can request confirmation now");
+    } else if (a.nextRequestAvailableAt) {
+      parts.push(
+        `      cannot request confirmation yet — next available at ${formatUnixTime(a.nextRequestAvailableAt)}`,
+      );
+    } else {
+      parts.push("      awaiting confirmation");
+    }
+    if (a.tokenExpiresAt) {
+      parts.push(`      confirmation link valid until ${formatUnixTime(a.tokenExpiresAt)}`);
+    } else {
+      parts.push("      no valid confirmation link right now");
+    }
+  }
+  return parts.join("\n");
+}
+
+export function formatBccList(data: EmailBccListResponse): string {
+  const groups = data.groups ?? [];
+  if (groups.length === 0) {
+    return "No notification groups available for BCC.";
+  }
+  const lines: string[] = [
+    `Email BCC addresses (per-group, max ${data.limit} per group):`,
+  ];
+  for (const g of groups) {
+    lines.push("");
+    lines.push(`  ${g.groupTitle} (${g.groupCode}) — ${g.addresses.length}/${data.limit}`);
+    if (g.addresses.length === 0) {
+      lines.push("    (no BCC addresses)");
+      continue;
+    }
+    for (const a of g.addresses) {
+      lines.push(formatBccAddress(a));
+    }
+  }
+  return lines.join("\n");
+}
+
+export function formatBccAdd(r: EmailBccMutationResponse): string {
+  const a = r.address;
+  return [
+    `Added ${a.email} to BCC for group "${r.groupCode}" (id: ${a.id}, status: ${a.status}).`,
+    "No confirmation email has been sent yet — call send_notification_email_bcc_confirmation to email a verification link.",
+    "BCC addresses only start receiving copies after the owner clicks the link in that email.",
+  ].join("\n");
+}
+
+export function formatBccSendConfirmation(r: EmailBccMutationResponse): string {
+  const a = r.address;
+  const lines = [
+    `Confirmation email queued for ${a.email} (group "${r.groupCode}", id: ${a.id}).`,
+    "The owner of that mailbox must open the email and click 'Confirm' for the address to start receiving BCC copies.",
+  ];
+  if (a.tokenExpiresAt) {
+    lines.push(`Confirmation link is valid until ${formatUnixTime(a.tokenExpiresAt)}.`);
+  }
+  if (a.nextRequestAvailableAt) {
+    lines.push(
+      `Re-sending another confirmation is rate-limited — next available at ${formatUnixTime(a.nextRequestAvailableAt)}.`,
+    );
+  }
+  return lines.join("\n");
+}
+
+export function formatBccDelete(groupCode: string, bccId: number): string {
+  return `Removed BCC address #${bccId} from group "${groupCode}". Any pending confirmation link for it is now invalid.`;
 }

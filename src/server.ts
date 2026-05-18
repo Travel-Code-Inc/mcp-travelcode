@@ -35,6 +35,10 @@ import { registerDisconnectNotificationIntegration } from "./tools/disconnect-no
 import { registerListNotificationSettings } from "./tools/list-notification-settings.js";
 import { registerGetNotificationSetting } from "./tools/get-notification-setting.js";
 import { registerUpdateNotificationSetting } from "./tools/update-notification-setting.js";
+import { registerListNotificationEmailBcc } from "./tools/list-notification-email-bcc.js";
+import { registerAddNotificationEmailBcc } from "./tools/add-notification-email-bcc.js";
+import { registerSendNotificationEmailBccConfirmation } from "./tools/send-notification-email-bcc-confirmation.js";
+import { registerDeleteNotificationEmailBcc } from "./tools/delete-notification-email-bcc.js";
 
 export interface CreatedServer {
   server: McpServer;
@@ -98,6 +102,12 @@ export function createServer(config: TravelCodeConfig): CreatedServer {
   registerListNotificationSettings(server, client);
   registerGetNotificationSetting(server, client);
   registerUpdateNotificationSetting(server, client);
+
+  // Email BCC (per-group hidden copies for the Email channel)
+  registerListNotificationEmailBcc(server, client);
+  registerAddNotificationEmailBcc(server, client);
+  registerSendNotificationEmailBccConfirmation(server, client);
+  registerDeleteNotificationEmailBcc(server, client);
 
   return { server, apiClient: client };
 }
