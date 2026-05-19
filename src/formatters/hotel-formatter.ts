@@ -94,6 +94,7 @@ export function formatHotelOffers(data: HotelOffersResponse): string {
   const lines: string[] = [
     `${stars} ${prop.name}`,
     prop.address ? `Address: ${prop.address}` : "",
+    data.hotelUrl ? `Hotel page: ${data.hotelUrl}` : "",
   ].filter(Boolean);
 
   // Descriptions

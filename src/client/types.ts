@@ -361,6 +361,7 @@ export interface OrderFull {
   ticketingDeadline?: string | null;
   createdAt?: string | null;
   updatedAt?: string | null;
+  viewUrl?: string | null;
 }
 
 /** POST /v1/orders wraps the order in `{ order: ... }`. */
@@ -611,6 +612,7 @@ export interface HotelOffersResponse {
   property: HotelProperty;
   offers: Record<string, HotelOfferRoomGroup>;
   bronevikId?: number;
+  hotelUrl?: string;
 }
 
 // --- Clients (Tourists) ---

@@ -34,6 +34,7 @@ export function registerGetHotelOffers(server: McpServer, client: TravelCodeApiC
       "",
       "USER-FACING LANGUAGE (mandatory):",
       "  • Speak about 'rooms', 'rates', 'free cancellation until <date>', 'penalty after <date>', 'refundable / non-refundable / partially refundable'. Never quote internal labels: hotel id, search reference, offer reference, parameter names, REST routes, error codes.",
+      "  • The 'Hotel page: <url>' line IS for the user — surface it as a clickable link to view the hotel on the agency site. Do not show the raw URL string in chat; render it as a friendly link.",
       "  • The block marked '(internal — do not show to user)' is for downstream tool calls only. Never quote or mention it.",
       "",
       "Pass the SAME nationality and guest composition (including children's ages) that were used in search_hotels — otherwise prices and availability will diverge.",

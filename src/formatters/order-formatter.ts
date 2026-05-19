@@ -96,6 +96,11 @@ export function formatOrderDetail(order: OrderFull): string {
     }
   }
 
+  if (order.viewUrl) {
+    lines.push("");
+    lines.push(`View booking: ${order.viewUrl}`);
+  }
+
   if (order.createdAt || order.updatedAt) {
     lines.push("");
     if (order.createdAt) lines.push(`Created: ${order.createdAt}`);

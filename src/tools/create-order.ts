@@ -186,6 +186,7 @@ export function registerCreateOrder(server: McpServer, client: TravelCodeApiClie
       "USER-FACING LANGUAGE (mandatory):",
       "  • Talk to the user in plain language only. Never quote internal labels or values: search reference, offer reference, session id, offer id, booking id, cache key, quote key, external id, REST routes (POST /v1/orders, etc.), error codes (OFFER_EXPIRED, OCCUPANCY_MISMATCH, 409, etc.), parameter names from the tool schema (service_type, session_id, offer_id, book_key, …) — none of those go into messages to the user.",
       "  • Talk about: 'this offer', 'the hotel/flight you picked', 'your booking', 'the cancellation rules', 'check-in date', 'create the booking', 'cancel the booking', 'change the booking', 'the search'.",
+      "  • The 'View booking: <url>' line on a successful booking IS for the user — render it as a friendly clickable link so they can open the booking in the agency dashboard. Do not show the raw URL string in chat.",
       "  • If something fails, describe the cause in plain words ('the offer expired before booking', 'the price changed', 'this room is sold out', 'the room is unavailable for this nationality') — never copy the technical message verbatim.",
       "",
       "How to wire the call (internal — never narrate to the user):",
