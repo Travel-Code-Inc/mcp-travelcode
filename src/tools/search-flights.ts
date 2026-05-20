@@ -6,6 +6,7 @@ import { FlightSearchRequest } from "../client/types.js";
 import { executeFlightSearch, type ProgressCallback } from "../polling/flight-poller.js";
 import { formatFlightResults } from "../formatters/flight-formatter.js";
 import type { ServerNotification } from "@modelcontextprotocol/sdk/types.js";
+import { impersonationInputSchema, withImpersonation } from "../util/impersonation-tool.js";
 
 function convertDate(isoDate: string): string {
   // YYYY-MM-DD → DD.MM.YYYY
@@ -43,15 +44,16 @@ export function registerSearchFlights(server: McpServer, client: TravelCodeApiCl
       "",
       "Lead-passenger profile — STRICT rules, no shortcuts:",
       "  • Nationality is part of the booking and must match the document used at create_order. NEVER invent or assume a default nationality (no 'RU', no UI-language guess, no destination country).",
-      "  • Before the first flight search of the session, if you don't already know the lead passenger, call get_main_client and remember the saved traveler — reuse them at booking. (For the traveller role this is mandatory and must be silent.)",
+      "  • Before the first flight search of the session, if you don't already know the lead passenger, call get_main_client and remember the saved traveler — reuse them at booking. Do not ask the user for nationality before you have tried this. (For the traveller role this is mandatory and must be silent.)",
       "  • Only if get_main_client returns no traveler, ask the user before booking. The search itself can run on counts (adults/children/infants) without a nationality, but the booking cannot.",
+      "  • Impersonation note: if you are calling this tool with actAs=<email>, you MUST call get_main_client with the SAME actAs so you read the TARGET user's saved traveler — not your own. The same applies to actAsCompanyId when set.",
       "",
       "Role rules (from get_current_user, called once per session):",
       "  • Traveller (employee_traveller): force 1 adult, 0 children, 0 infants. Refuse multi-passenger searches. Use get_main_client to load the only saved traveler; reuse them at booking.",
       "  • Developer: prefix the user-facing reply with '[Developer mode]'.",
     ].join("\n"),
-    searchFlightsSchema,
-    async ({ origin, destination, departure_date, return_date, cabin_class, adults, children, infants, preferred_airlines }, extra) => {
+    { ...searchFlightsSchema, ...impersonationInputSchema },
+    withImpersonation(async ({ origin, destination, departure_date, return_date, cabin_class, adults, children, infants, preferred_airlines }, extra: { _meta?: { progressToken?: string | number }; sendNotification: (n: ServerNotification) => Promise<void> }) => {
       try {
         const searchParams: FlightSearchRequest = {
           locationFrom: origin.toUpperCase(),
@@ -106,6 +108,6 @@ export function registerSearchFlights(server: McpServer, client: TravelCodeApiCl
           isError: true,
         };
       }
-    }
+    })
   );
 }

@@ -3,6 +3,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { TravelCodeApiClient } from "../client/api-client.js";
 import { HotelOffersResponse } from "../client/types.js";
 import { formatHotelOffers } from "../formatters/hotel-formatter.js";
+import { impersonationInputSchema, withImpersonation } from "../util/impersonation-tool.js";
 
 const guestSchema = z.object({
   adults: z.number().int().min(1).max(4).describe("Number of adults (1-4)"),
@@ -38,9 +39,10 @@ export function registerGetHotelOffers(server: McpServer, client: TravelCodeApiC
       "  • The block marked '(internal — do not show to user)' is for downstream tool calls only. Never quote or mention it.",
       "",
       "Pass the SAME nationality and guest composition (including children's ages) that were used in search_hotels — otherwise prices and availability will diverge.",
+      "If the originating search_hotels call used actAs/actAsCompanyId, pass the SAME values here so the offer fetch runs as the same target user. Mismatching impersonation will return a different rate or 404.",
     ].join("\n"),
-    getHotelOffersSchema,
-    async ({ id, checkin, checkout, country_code, guests, location }) => {
+    { ...getHotelOffersSchema, ...impersonationInputSchema },
+    withImpersonation(async ({ id, checkin, checkout, country_code, guests, location }) => {
       try {
         const body: Record<string, unknown> = {
           id,
@@ -67,6 +69,6 @@ export function registerGetHotelOffers(server: McpServer, client: TravelCodeApiC
           isError: true,
         };
       }
-    }
+    })
   );
 }

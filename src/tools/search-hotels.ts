@@ -3,6 +3,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { TravelCodeApiClient } from "../client/api-client.js";
 import { HotelOffer, HotelSSECompleted, HotelSSEHotelsBatch, HotelSSESortedBatch } from "../client/types.js";
 import { formatHotelResults } from "../formatters/hotel-formatter.js";
+import { impersonationInputSchema, withImpersonation } from "../util/impersonation-tool.js";
 
 const guestSchema = z.object({
   adults: z.number().int().min(1).max(4).describe("Number of adults (1-4)"),
@@ -95,10 +96,11 @@ export function registerSearchHotels(server: McpServer, client: TravelCodeApiCli
       "Lead-guest nationality (country_code) — STRICT rules, no shortcuts:",
       "  • Pricing and availability depend on it; it must match the lead guest's nationality at booking. A wrong nationality means the booking will either change price or fail.",
       "  • NEVER invent or assume a default. Do NOT pick 'RU', 'US', the user's UI language, the destination country, or anything else as a fallback. There is no acceptable default.",
-      "  • Resolution order before calling this tool:",
+      "  • Resolution order before calling this tool — DO NOT ask the user for nationality before you have tried these steps:",
       "      1. If the user explicitly stated a nationality in the conversation, use it.",
-      "      2. Otherwise call get_main_client FIRST. If it returns a traveler, use that traveler's nationality and remember the traveler — you will reuse them at booking. (For the traveller role this step is mandatory anyway and must be silent.)",
+      "      2. Otherwise call get_main_client FIRST. If it returns a traveler, use that traveler's nationality and remember the traveler — you will reuse them at booking. This is mandatory; do not skip it. (For the traveller role it must be silent.)",
       "      3. Only if get_main_client returns no traveler, ask the user for the lead guest's nationality. Do not search until they answer.",
+      "  • Impersonation note: if you are calling this tool with actAs=<email>, you MUST call get_main_client with the SAME actAs so you read the TARGET user's saved traveler — not your own. The same applies to actAsCompanyId when set.",
       "  • Do not narrate this resolution to the user — just use the resulting nationality silently. If you used a saved traveler, you may briefly confirm: 'Using your saved profile (Ivan, BY) — say if you want a different nationality.'",
       "",
       "Other guest-data rules:",
@@ -109,8 +111,8 @@ export function registerSearchHotels(server: McpServer, client: TravelCodeApiCli
       "  • Traveller (employee_traveller): force 1 adult, no children. Call get_main_client silently and use that traveler's nationality (mandatory, no questions). Refuse multi-guest searches.",
       "  • Developer: prefix the user-facing reply with '[Developer mode]'.",
     ].join("\n"),
-    searchHotelsSchema,
-    async ({ location, checkin, checkout, country_code, guests, sort, offset, limit, filter }) => {
+    { ...searchHotelsSchema, ...impersonationInputSchema },
+    withImpersonation(async ({ location, checkin, checkout, country_code, guests, sort, offset, limit, filter }) => {
       try {
         const body: Record<string, unknown> = {
           location,
@@ -173,6 +175,6 @@ export function registerSearchHotels(server: McpServer, client: TravelCodeApiCli
           isError: true,
         };
       }
-    }
+    })
   );
 }

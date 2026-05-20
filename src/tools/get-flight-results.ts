@@ -3,6 +3,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { TravelCodeApiClient } from "../client/api-client.js";
 import { FlightSearchResultsResponse } from "../client/types.js";
 import { formatFilteredResults } from "../formatters/flight-formatter.js";
+import { impersonationInputSchema, withImpersonation } from "../util/impersonation-tool.js";
 
 export const getFlightResultsSchema = {
   cache_id: z.string().describe("Cache ID from a previous search_flights result"),
@@ -19,9 +20,9 @@ export const getFlightResultsSchema = {
 export function registerGetFlightResults(server: McpServer, client: TravelCodeApiClient) {
   server.tool(
     "get_flight_results",
-    "Retrieve or filter existing flight search results using a cache ID from a previous search. Apply filters (direct flights, specific airlines, price range), change sorting, or paginate through results without running a new search. Cache expires after ~15 minutes.",
-    getFlightResultsSchema,
-    async ({ cache_id, max_stops, sort_by, sort_order, airlines, max_price, baggage_only, offset, limit }) => {
+    "Retrieve or filter existing flight search results using a cache ID from a previous search. Apply filters (direct flights, specific airlines, price range), change sorting, or paginate through results without running a new search. Cache expires after ~15 minutes. If the originating search_flights call used actAs/actAsCompanyId, pass the SAME values here so the cache is read as the same target user.",
+    { ...getFlightResultsSchema, ...impersonationInputSchema },
+    withImpersonation(async ({ cache_id, max_stops, sort_by, sort_order, airlines, max_price, baggage_only, offset, limit }) => {
       try {
         // Build query params
         const params: Record<string, string | number | boolean | undefined> = {
@@ -82,6 +83,6 @@ export function registerGetFlightResults(server: McpServer, client: TravelCodeAp
           isError: true,
         };
       }
-    }
+    })
   );
 }
