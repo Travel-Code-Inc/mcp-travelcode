@@ -822,6 +822,22 @@ export interface EmailBccDeleteResponse {
   success: boolean;
 }
 
+// --- Rate Guard (agency settings) ---
+
+export interface RateGuardDefaults {
+  enabled: boolean;
+  savingPercent: number;
+  savingAmountUsd: number;
+  maxEarlierCancelShiftDays: number;
+  minDaysBeforeCheckin: number;
+}
+
+export interface RateGuardSettings extends RateGuardDefaults {
+  defaults: RateGuardDefaults;
+  updatedAt: number | null;
+  updatedBy: number | null;
+}
+
 // --- Errors ---
 
 /**

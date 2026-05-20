@@ -154,6 +154,23 @@ export class TravelCodeApiClient {
     return this.handleResponse<T>(response);
   }
 
+  async put<T>(
+    path: string,
+    body?: unknown,
+    params?: Record<string, string | number | boolean | undefined>,
+  ): Promise<T> {
+    await this.ensureValidToken();
+    const response = await fetch(this.buildUrl(path, params), {
+      method: "PUT",
+      headers: {
+        ...this.headers(),
+        "Content-Type": "application/json",
+      },
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+    });
+    return this.handleResponse<T>(response);
+  }
+
   async delete<T>(path: string, params?: Record<string, string | number | boolean | undefined>): Promise<T> {
     await this.ensureValidToken();
     const response = await fetch(this.buildUrl(path, params), {

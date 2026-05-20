@@ -26,6 +26,8 @@ import { registerGetClient } from "./tools/get-client.js";
 import { registerSearchClients } from "./tools/search-clients.js";
 import { registerGetCurrentUser } from "./tools/get-current-user.js";
 import { registerListTargetCompanies } from "./tools/list-target-companies.js";
+import { registerGetRateGuardSettings } from "./tools/get-rate-guard-settings.js";
+import { registerUpdateRateGuardSettings } from "./tools/update-rate-guard-settings.js";
 import { registerListNotificationIntegrations } from "./tools/list-notification-integrations.js";
 import { registerGetTelegramStatus } from "./tools/get-telegram-status.js";
 import { registerGetSlackStatus } from "./tools/get-slack-status.js";
@@ -89,6 +91,10 @@ export function createServer(config: TravelCodeConfig): CreatedServer {
 
   // Admin impersonation discovery
   registerListTargetCompanies(server, client);
+
+  // Rate Guard agency settings (director-only)
+  registerGetRateGuardSettings(server, client);
+  registerUpdateRateGuardSettings(server, client);
 
   // Client (tourist) tools
   registerGetMainClient(server, client);
