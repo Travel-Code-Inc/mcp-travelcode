@@ -2,6 +2,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { TravelCodeApiClient } from "../client/api-client.js";
 import { ClientFull } from "../client/types.js";
 import { formatClient } from "../formatters/client-formatter.js";
+import { impersonationInputSchema, withImpersonation } from "../util/impersonation-tool.js";
 
 export const getMainClientSchema = {};
 
@@ -20,8 +21,8 @@ export function registerGetMainClient(server: McpServer, client: TravelCodeApiCl
       "  • Do NOT call for 2+ adults — ask only the lead guest's nationality and collect each traveler's details before booking.",
       "  • If the user rejects the proposed traveler, fall through to search_clients or collect details manually.",
     ].join("\n"),
-    getMainClientSchema,
-    async () => {
+    { ...getMainClientSchema, ...impersonationInputSchema },
+    withImpersonation(async () => {
       try {
         const data = await client.get<ClientFull>("/clients");
         return {
@@ -33,6 +34,6 @@ export function registerGetMainClient(server: McpServer, client: TravelCodeApiCl
           isError: true,
         };
       }
-    }
+    })
   );
 }

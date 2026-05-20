@@ -3,6 +3,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { TravelCodeApiClient } from "../client/api-client.js";
 import { CancelResult } from "../client/types.js";
 import { formatCancelResult } from "../formatters/order-formatter.js";
+import { impersonationInputSchema, withImpersonation } from "../util/impersonation-tool.js";
 
 export const cancelOrderSchema = {
   order_id: z.number().int().describe("Order ID to cancel"),
@@ -24,8 +25,8 @@ export function registerCancelOrder(server: McpServer, client: TravelCodeApiClie
       "",
       "Cancellation is asynchronous — use get_order afterwards to confirm the final status. Calling on an already-cancelled booking returns the current status (no error). If the cancel window has passed or the booking is already terminal, the tool will report it — phrase it for the user as 'this booking can no longer be cancelled'.",
     ].join("\n"),
-    cancelOrderSchema,
-    async ({ order_id, reason }) => {
+    { ...cancelOrderSchema, ...impersonationInputSchema },
+    withImpersonation(async ({ order_id, reason }) => {
       try {
         const body = reason ? { reason } : undefined;
         const data = await client.post<CancelResult>(`/orders/${order_id}/cancel`, body);
@@ -39,6 +40,6 @@ export function registerCancelOrder(server: McpServer, client: TravelCodeApiClie
           isError: true,
         };
       }
-    }
+    })
   );
 }

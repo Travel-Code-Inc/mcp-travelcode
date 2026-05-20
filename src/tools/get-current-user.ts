@@ -5,6 +5,7 @@ import {
   USER_ROLE,
   USER_ROLE_LABEL,
 } from "../client/types.js";
+import { impersonationInputSchema, withImpersonation } from "../util/impersonation-tool.js";
 
 export const getCurrentUserSchema = {};
 
@@ -29,8 +30,8 @@ export function registerGetCurrentUser(server: McpServer, client: TravelCodeApiC
       "",
       "  • Other roles: standard flow described in each tool's own documentation.",
     ].join("\n"),
-    getCurrentUserSchema,
-    async () => {
+    { ...getCurrentUserSchema, ...impersonationInputSchema },
+    withImpersonation(async () => {
       try {
         const me = await client.get<CurrentUser>("/user/me");
         const role = typeof me.role === "number" ? me.role : -1;
@@ -66,6 +67,6 @@ export function registerGetCurrentUser(server: McpServer, client: TravelCodeApiC
           isError: true,
         };
       }
-    },
+    }),
   );
 }

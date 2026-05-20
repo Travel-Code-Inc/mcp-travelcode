@@ -3,6 +3,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { TravelCodeApiClient } from "../client/api-client.js";
 import { ModifyResult } from "../client/types.js";
 import { formatModifyResult } from "../formatters/order-formatter.js";
+import { impersonationInputSchema, withImpersonation } from "../util/impersonation-tool.js";
 
 export const modifyOrderSchema = {
   order_id: z.number().int().describe("Order ID to modify"),
@@ -22,8 +23,8 @@ export function registerModifyOrder(server: McpServer, client: TravelCodeApiClie
   server.tool(
     "modify_order",
     "Change an existing booking: contact info, passport, dates (rebook), or add baggage. Always call check_order_modification first to learn which changes are allowed for this booking. Modification is asynchronous — use get_order afterwards to confirm the result. Speak about 'the booking' and 'the change' in plain language to the user — never quote internal labels, REST routes, or error codes.",
-    modifyOrderSchema,
-    async ({ order_id, type, changes }) => {
+    { ...modifyOrderSchema, ...impersonationInputSchema },
+    withImpersonation(async ({ order_id, type, changes }) => {
       try {
         const data = await client.post<ModifyResult>(`/orders/${order_id}/modify`, {
           type,
@@ -39,6 +40,6 @@ export function registerModifyOrder(server: McpServer, client: TravelCodeApiClie
           isError: true,
         };
       }
-    }
+    })
   );
 }

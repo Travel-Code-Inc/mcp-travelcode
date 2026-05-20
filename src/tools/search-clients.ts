@@ -3,6 +3,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { TravelCodeApiClient } from "../client/api-client.js";
 import { ClientShort } from "../client/types.js";
 import { formatClientList } from "../formatters/client-formatter.js";
+import { impersonationInputSchema, withImpersonation } from "../util/impersonation-tool.js";
 
 export const searchClientsSchema = {
   first_name: z.string().optional().describe("First name to match (partial, case-insensitive, matches both Cyrillic and Latin fields)"),
@@ -24,8 +25,8 @@ export function registerSearchClients(server: McpServer, client: TravelCodeApiCl
       "",
       "Matching is partial and works against both Cyrillic and Latin name fields. At least one of first_name or last_name is required.",
     ].join("\n"),
-    searchClientsSchema,
-    async ({ first_name, last_name }) => {
+    { ...searchClientsSchema, ...impersonationInputSchema },
+    withImpersonation(async ({ first_name, last_name }) => {
       if (!first_name && !last_name) {
         return {
           content: [{ type: "text", text: "Provide first_name or last_name (or both) to search." }],
@@ -46,6 +47,6 @@ export function registerSearchClients(server: McpServer, client: TravelCodeApiCl
           isError: true,
         };
       }
-    }
+    })
   );
 }

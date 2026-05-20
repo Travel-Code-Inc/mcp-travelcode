@@ -25,6 +25,7 @@ import { registerGetMainClient } from "./tools/get-main-client.js";
 import { registerGetClient } from "./tools/get-client.js";
 import { registerSearchClients } from "./tools/search-clients.js";
 import { registerGetCurrentUser } from "./tools/get-current-user.js";
+import { registerListTargetCompanies } from "./tools/list-target-companies.js";
 import { registerListNotificationIntegrations } from "./tools/list-notification-integrations.js";
 import { registerGetTelegramStatus } from "./tools/get-telegram-status.js";
 import { registerGetSlackStatus } from "./tools/get-slack-status.js";
@@ -85,6 +86,9 @@ export function createServer(config: TravelCodeConfig): CreatedServer {
 
   // Current user / session
   registerGetCurrentUser(server, client);
+
+  // Admin impersonation discovery
+  registerListTargetCompanies(server, client);
 
   // Client (tourist) tools
   registerGetMainClient(server, client);

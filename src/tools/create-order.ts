@@ -15,6 +15,7 @@ import {
   GuestForValidation,
   validateChildrenAges,
 } from "../util/guest-validation.js";
+import { impersonationInputSchema, withImpersonation } from "../util/impersonation-tool.js";
 
 const documentSchema = z.object({
   type: z
@@ -207,8 +208,8 @@ export function registerCreateOrder(server: McpServer, client: TravelCodeApiClie
       "",
       "Dates: accept any common format from the user; we normalize internally. If a date is ambiguous (e.g. 03.04.2026 with no locale clue), the call fails and you must re-ask the user.",
     ].join("\n"),
-    createOrderSchema,
-    async ({
+    { ...createOrderSchema, ...impersonationInputSchema },
+    withImpersonation(async ({
       service_type,
       session_id,
       offer_id,
@@ -324,6 +325,6 @@ export function registerCreateOrder(server: McpServer, client: TravelCodeApiClie
           isError: true,
         };
       }
-    },
+    }),
   );
 }

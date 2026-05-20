@@ -1,6 +1,12 @@
 import { TravelCodeConfig } from "../config.js";
 import { getValidToken } from "../auth/token-store.js";
 import { ApiErrorResponse } from "./types.js";
+import {
+  impersonationContext,
+  impersonationHeaders,
+  TargetCompany,
+  TravelCodeImpersonationCompanyRequiredError,
+} from "../util/impersonation.js";
 
 export class TravelCodeAuthError extends Error {
   constructor(message: string) {
@@ -288,11 +294,44 @@ export class TravelCodeApiClient {
     return this.post<T>(path, body);
   }
 
+  /**
+   * REST returns error code 74 (IMPERSONATION_COMPANY_REQUIRED) inside the
+   * canonical envelope as `error.code === "74"`, the flat shape as
+   * `code === 74`, or — when HttpException builds the text itself —
+   * with `[74] ...` prefix in the message.
+   */
+  /**
+   * Best-effort lookup of the target user's companies when the server rejects
+   * a call with IMPERSONATION_COMPANY_REQUIRED. Stays inside the current
+   * AsyncLocalStorage impersonation context, so the X-On-Behalf-Of header
+   * is still sent. Returns [] if anything goes wrong — the error surfaces
+   * either way, the list is just a UX hint.
+   */
+  private async fetchTargetCompanies(): Promise<TargetCompany[]> {
+    try {
+      const data = await this.get<{ items?: TargetCompany[] }>("/companies");
+      return Array.isArray(data?.items) ? (data!.items as TargetCompany[]) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  private isImpersonationCompanyRequired(body: unknown): boolean {
+    if (!body || typeof body !== "object") return false;
+    const b = body as ApiErrorResponse;
+    const codes: Array<string | number | undefined> = [b.error?.code, b.code];
+    if (codes.some((c) => c === 74 || c === "74")) return true;
+    const msg = b.message ?? b.text ?? b.error?.message;
+    if (typeof msg === "string" && /^\[74\]/.test(msg)) return true;
+    return false;
+  }
+
   private headers(): Record<string, string> {
     return {
       Authorization: `Bearer ${this.token}`,
       "X-Source": "mcp-server",
       Accept: "application/json",
+      ...impersonationHeaders(),
     };
   }
 
@@ -334,6 +373,12 @@ export class TravelCodeApiClient {
       typeof (parsedBody as { bookKey?: unknown }).bookKey === "string"
     ) {
       throw new TravelCodeOfferChangedError(parsedBody as OfferChangedDetails);
+    }
+
+    if (response.status === 400 && this.isImpersonationCompanyRequired(parsedBody)) {
+      const actAs = impersonationContext.getStore()?.actAs;
+      const companies = await this.fetchTargetCompanies();
+      throw new TravelCodeImpersonationCompanyRequiredError(actAs, companies);
     }
 
     switch (response.status) {
