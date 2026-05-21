@@ -47,6 +47,7 @@ export function registerSearchFlights(server: McpServer, client: TravelCodeApiCl
       "  • Before the first flight search of the session, if you don't already know the lead passenger, call get_main_client and remember the saved traveler — reuse them at booking. Do not ask the user for nationality before you have tried this. (For the traveller role this is mandatory and must be silent.)",
       "  • Only if get_main_client returns no traveler, ask the user before booking. The search itself can run on counts (adults/children/infants) without a nationality, but the booking cannot.",
       "  • Impersonation note: if you are calling this tool with actAs=<email>, you MUST call get_main_client with the SAME actAs so you read the TARGET user's saved traveler — not your own. The same applies to actAsCompanyId when set.",
+      "  • Cache-invalidation: if get_main_client was already called earlier in this session WITHOUT actAs (e.g. at session start) and you now have an actAs, DO NOT reuse the earlier result. Refetch get_main_client with the new actAs — the previous result is the admin's profile and is wrong for the target user.",
       "",
       "Role rules (from get_current_user, called once per session):",
       "  • Traveller (employee_traveller): force 1 adult, 0 children, 0 infants. Refuse multi-passenger searches. Use get_main_client to load the only saved traveler; reuse them at booking.",

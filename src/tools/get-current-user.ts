@@ -17,7 +17,7 @@ export function registerGetCurrentUser(server: McpServer, client: TravelCodeApiC
       "",
       "USER-FACING LANGUAGE: this is internal context. Never narrate to the user that you 'fetched their profile' or quote role codes / labels — just behave according to the rules below.",
       "",
-      "Right after this tool returns (any role), if the upcoming intent is a search/booking and you don't yet know which traveler to use, also call get_main_client and remember the saved traveler. Their nationality is the default for the lead-guest nationality; this prevents you from inventing a country. For the traveller role this is mandatory; for other roles do it pre-emptively unless the user has already named someone else.",
+      "Right after this tool returns: only call get_main_client eagerly when the search/booking will run as THIS user (no impersonation). If the user has already named a target email for impersonation, OR you do not yet know whether the upcoming search will use actAs, DEFER the get_main_client call until the moment you know the actAs — then call get_main_client with that same actAs (and actAsCompanyId when set). Calling get_main_client without actAs and then reusing the result for an impersonated search returns the ADMIN's nationality and breaks pricing. For the traveller role (employee_traveller) impersonation is not in play, so always call get_main_client immediately.",
       "",
       "Behaviors driven by role:",
       "",

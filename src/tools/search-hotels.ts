@@ -101,6 +101,7 @@ export function registerSearchHotels(server: McpServer, client: TravelCodeApiCli
       "      2. Otherwise call get_main_client FIRST. If it returns a traveler, use that traveler's nationality and remember the traveler — you will reuse them at booking. This is mandatory; do not skip it. (For the traveller role it must be silent.)",
       "      3. Only if get_main_client returns no traveler, ask the user for the lead guest's nationality. Do not search until they answer.",
       "  • Impersonation note: if you are calling this tool with actAs=<email>, you MUST call get_main_client with the SAME actAs so you read the TARGET user's saved traveler — not your own. The same applies to actAsCompanyId when set.",
+      "  • Cache-invalidation: if get_main_client was already called earlier in this session WITHOUT actAs (e.g. at session start) and you now have an actAs, DO NOT reuse the earlier result. Refetch get_main_client with the new actAs — the previous result is the admin's profile and is wrong for the target user.",
       "  • Do not narrate this resolution to the user — just use the resulting nationality silently. If you used a saved traveler, you may briefly confirm: 'Using your saved profile (Ivan, BY) — say if you want a different nationality.'",
       "",
       "Other guest-data rules:",
