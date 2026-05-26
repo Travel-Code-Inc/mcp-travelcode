@@ -655,6 +655,93 @@ export interface ClientFull extends ClientShort {
   memberships: ClientMembership[];
 }
 
+// --- Travelers (duty-of-care) ---
+
+export type TravelerTripStatus = "departing" | "enroute" | "returning";
+
+export interface TravelerShort {
+  id: string;                 // public format: "oc-<int>"
+  name: string;
+  email?: string;
+  phone?: string;
+  role?: string;
+  initials?: string;
+  city?: string;
+  country_iso?: string;       // ISO 3166-1 alpha-3
+  latitude?: number;
+  longitude?: number;
+  trip_start?: string;        // ISO 8601
+  trip_end?: string;          // ISO 8601
+  status?: TravelerTripStatus;
+}
+
+export interface TravelerTripService {
+  type: string;               // "hotel" | "flight" | ...
+  title?: string;
+  date?: string;              // YYYY-MM-DD
+  duration_days?: number | null;
+  country_iso?: string;
+  city?: string;
+}
+
+export interface TravelerCurrentTrip {
+  order_id?: number;
+  order_status?: string;
+  services?: TravelerTripService[];
+}
+
+export interface TravelerFull extends TravelerShort {
+  passport_number?: string;
+  passport_expire_at?: string;
+  birth_day?: string;
+  nationality?: string;       // ISO 3166-1 alpha-3
+  current_trip?: TravelerCurrentTrip;
+}
+
+export interface TravelersPagination {
+  offset: number;
+  limit: number;
+  total: number;
+}
+
+export interface TravelersListResponse {
+  data: TravelerShort[];
+  pagination: TravelersPagination;
+  fetched_at?: string;
+}
+
+export interface TravelerDetailResponse {
+  data: TravelerFull;
+  fetched_at?: string;
+}
+
+export type TravelerContactChannel = "email" | "sms" | "push";
+export type TravelerContactTemplate = "safety_check_in" | "evacuation_advisory" | "custom";
+
+export interface ContactTravelersRequest {
+  traveler_ids: string[];
+  channel: TravelerContactChannel;
+  template: TravelerContactTemplate;
+  custom_message?: string;
+}
+
+export interface ContactSentItem {
+  id: string;
+  channel: TravelerContactChannel;
+  status: string;             // e.g. "queued"
+}
+
+export interface ContactFailedItem {
+  id: string;
+  reason: string;
+}
+
+export interface ContactTravelersResponse {
+  sent: ContactSentItem[];
+  failed: ContactFailedItem[];
+  fetched_at?: string;
+}
+
 // --- Current user ---
 
 /**

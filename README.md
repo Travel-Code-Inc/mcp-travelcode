@@ -281,7 +281,7 @@ Works with **any MCP-compatible client** — including all major AI assistants, 
 | [MCP Inspector](https://github.com/modelcontextprotocol/inspector) | stdio | ✅ Tested |
 | Any MCP client | stdio / Streamable HTTP | ✅ Compatible |
 
-## Tools (20)
+## Tools (44)
 
 ### ✈️ Flight Search & Reference Data
 
@@ -309,6 +309,14 @@ Works with **any MCP-compatible client** — including all major AI assistants, 
 | `search_hotel_locations` | Find cities, regions, or specific hotels by name (returns location IDs for search) |
 | `get_hotel_location` | Get location details by ID |
 | `search_hotels` | Search hotels with filters — property type, star rating, price range, meal plan, refundability. Results stream incrementally |
+
+### 🧳 Travelers (duty-of-care)
+
+| Tool | Description |
+|------|-------------|
+| `search_travelers` | List corporate travelers in the active window or by date range, destination country, name/email search |
+| `get_traveler` | Full traveler card — passport, nationality, current trip with hotel/flight services |
+| `contact_travelers` | Send safety check-in, evacuation advisory, or custom message to one or more travelers (email/SMS/push) |
 
 ### 📋 Order Management
 

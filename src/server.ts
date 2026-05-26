@@ -24,6 +24,9 @@ import { registerGetHotelOffers } from "./tools/get-hotel-offers.js";
 import { registerGetMainClient } from "./tools/get-main-client.js";
 import { registerGetClient } from "./tools/get-client.js";
 import { registerSearchClients } from "./tools/search-clients.js";
+import { registerSearchTravelers } from "./tools/search-travelers.js";
+import { registerGetTraveler } from "./tools/get-traveler.js";
+import { registerContactTravelers } from "./tools/contact-travelers.js";
 import { registerGetCurrentUser } from "./tools/get-current-user.js";
 import { registerListTargetCompanies } from "./tools/list-target-companies.js";
 import { registerGetRateGuardSettings } from "./tools/get-rate-guard-settings.js";
@@ -100,6 +103,11 @@ export function createServer(config: TravelCodeConfig): CreatedServer {
   registerGetMainClient(server, client);
   registerGetClient(server, client);
   registerSearchClients(server, client);
+
+  // Traveler (duty-of-care) tools
+  registerSearchTravelers(server, client);
+  registerGetTraveler(server, client);
+  registerContactTravelers(server, client);
 
   // Notification integrations
   registerListNotificationIntegrations(server, client);
