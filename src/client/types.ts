@@ -655,6 +655,129 @@ export interface ClientFull extends ClientShort {
   memberships: ClientMembership[];
 }
 
+// --- Risk Alerts (duty-of-care, proxied from TravelRiskAPI) ---
+
+export type RiskAlertSeverity = "Critical" | "High" | "Medium" | "Low" | string;
+export type RiskAlertSource = "gdacs" | "usgs" | "eonet" | "nws" | "reliefweb" | null;
+
+export interface TravelRiskAlert {
+  id: number;
+  alert_type: string;
+  severity: RiskAlertSeverity;
+  country_iso: string | null;
+  location: string;
+  latitude: number;
+  longitude: number;
+  description: string;
+  event_date: string;
+  created_at: string;
+  source: RiskAlertSource;
+  external_id: string | null;
+  polygon: Array<[number, number]> | null;
+}
+
+export interface ActiveRiskAlertsResponse {
+  data: TravelRiskAlert[];
+  fetched_at?: string;
+}
+
+export type AlertsByCountryMap = Record<string, TravelRiskAlert[]>;
+
+export interface AlertsByCountryResponse {
+  data: AlertsByCountryMap;
+  fetched_at?: string;
+}
+
+export interface TravelRiskCountry {
+  iso_code: string;
+  name: string;
+  advisory_level: number;
+  advisory_description: string;
+  advisory_date: string;
+  risk_score: number;
+  last_updated: string;
+}
+
+export interface CountryAdvisoryEnvelope {
+  data: TravelRiskCountry | null;
+  fetched_at?: string;
+}
+
+export interface TravelRiskScore {
+  iso_code: string;
+  name: string;
+  risk_score: number;
+  advisory_level: number;
+  active_alerts: number;
+  calculation: {
+    base_score: number;
+    alert_impact: number;
+    composite: number;
+  };
+}
+
+export interface CountryRiskScoreEnvelope {
+  data: TravelRiskScore | null;
+  fetched_at?: string;
+}
+
+export type ConflictRootCode = "17" | "18" | "19" | "20" | string;
+
+export interface ConflictEvent {
+  id: number;
+  external_id: string;
+  event_code: string;
+  event_root_code: ConflictRootCode;
+  country_iso: string | null;
+  location: string;
+  latitude: number;
+  longitude: number;
+  description: string;
+  event_date: string;
+  num_mentions: number;
+  severity: "Critical" | "High" | "Medium" | string;
+  source_url: string;
+}
+
+export interface ConflictsEnvelope {
+  data: ConflictEvent[];
+  total: number;
+  filters: {
+    days: number | null;
+    country: string | null;
+    min_severity: string | null;
+  };
+  attribution: Record<string, string>;
+  fetched_at?: string;
+}
+
+export type AdvisoryLevel = 1 | 2 | 3 | 4 | number;
+export type AdvisoryAgency = "US" | "UK" | "CA" | string;
+
+export interface AdvisorySource {
+  agency: AdvisoryAgency;
+  level: AdvisoryLevel;
+  summary_label: string;
+  url: string | null;
+  updated_at: string | null;
+}
+
+export interface CountryAdvisory {
+  iso_code: string;
+  name: string;
+  max_level: AdvisoryLevel;
+  summary_label: string;
+  reasons: string[];
+  sources: AdvisorySource[];
+}
+
+export interface AdvisoriesEnvelope {
+  data: CountryAdvisory[];
+  total: number;
+  attribution: Record<string, string>;
+  fetched_at?: string;
+}
+
 // --- Travelers (duty-of-care) ---
 
 export type TravelerTripStatus = "departing" | "enroute" | "returning";

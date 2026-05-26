@@ -281,7 +281,7 @@ Works with **any MCP-compatible client** — including all major AI assistants, 
 | [MCP Inspector](https://github.com/modelcontextprotocol/inspector) | stdio | ✅ Tested |
 | Any MCP client | stdio / Streamable HTTP | ✅ Compatible |
 
-## Tools (44)
+## Tools (50)
 
 ### ✈️ Flight Search & Reference Data
 
@@ -309,6 +309,17 @@ Works with **any MCP-compatible client** — including all major AI assistants, 
 | `search_hotel_locations` | Find cities, regions, or specific hotels by name (returns location IDs for search) |
 | `get_hotel_location` | Get location details by ID |
 | `search_hotels` | Search hotels with filters — property type, star rating, price range, meal plan, refundability. Results stream incrementally |
+
+### 🚨 Risk Alerts (duty-of-care)
+
+| Tool | Description |
+|------|-------------|
+| `get_active_risk_alerts` | All currently active travel risk alerts worldwide (natural disasters, weather, conflicts, health) |
+| `get_risk_alerts_by_country` | Active alerts grouped by ISO-3 country code — heatmap view |
+| `get_country_advisory` | Single-country advisory snapshot — level, description, risk score, last update |
+| `get_country_risk_score` | Composite numeric risk score with base/alert-impact/composite breakdown |
+| `get_conflicts` | Recent armed-conflict events (GDELT proxy) with filters: days, country, min_severity, limit, skip |
+| `get_advisories` | Government travel advisories from US State Dept / UK FCDO / Canada GAC, filterable by country and min_level |
 
 ### 🧳 Travelers (duty-of-care)
 

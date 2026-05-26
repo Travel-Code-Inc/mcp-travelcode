@@ -27,6 +27,12 @@ import { registerSearchClients } from "./tools/search-clients.js";
 import { registerSearchTravelers } from "./tools/search-travelers.js";
 import { registerGetTraveler } from "./tools/get-traveler.js";
 import { registerContactTravelers } from "./tools/contact-travelers.js";
+import { registerGetActiveRiskAlerts } from "./tools/get-active-risk-alerts.js";
+import { registerGetRiskAlertsByCountry } from "./tools/get-risk-alerts-by-country.js";
+import { registerGetCountryAdvisory } from "./tools/get-country-advisory.js";
+import { registerGetCountryRiskScore } from "./tools/get-country-risk-score.js";
+import { registerGetConflicts } from "./tools/get-conflicts.js";
+import { registerGetAdvisories } from "./tools/get-advisories.js";
 import { registerGetCurrentUser } from "./tools/get-current-user.js";
 import { registerListTargetCompanies } from "./tools/list-target-companies.js";
 import { registerGetRateGuardSettings } from "./tools/get-rate-guard-settings.js";
@@ -108,6 +114,14 @@ export function createServer(config: TravelCodeConfig): CreatedServer {
   registerSearchTravelers(server, client);
   registerGetTraveler(server, client);
   registerContactTravelers(server, client);
+
+  // Risk Alerts (duty-of-care, public TravelRiskAPI proxy)
+  registerGetActiveRiskAlerts(server, client);
+  registerGetRiskAlertsByCountry(server, client);
+  registerGetCountryAdvisory(server, client);
+  registerGetCountryRiskScore(server, client);
+  registerGetConflicts(server, client);
+  registerGetAdvisories(server, client);
 
   // Notification integrations
   registerListNotificationIntegrations(server, client);
