@@ -48,9 +48,8 @@ const POLL_TIMEOUT_MS = parseInt(process.env.TRAVELCODE_POLL_TIMEOUT_MS || "9000
 
 // ChatGPT compares the granted scope set against this list and warns the
 // user if the token response drops any entry, so keep this in sync with
-// what the upstream AS at travel-code.com actually issues. orders:* scopes
-// are intentionally omitted — order tools still call the API successfully
-// because the REST layer authorizes per token validity, not per scope.
+// what the upstream AS at travel-code.com actually issues. Booking, cancelling
+// and changing orders require orders:write on the REST side.
 const SCOPES_SUPPORTED = [
   "flights:search",
   "flights:status",
@@ -59,6 +58,8 @@ const SCOPES_SUPPORTED = [
   "airlines:read",
   "hotels:search",
   "tourist:read",
+  "orders:read",
+  "orders:write",
 ];
 
 // --- Session store ---

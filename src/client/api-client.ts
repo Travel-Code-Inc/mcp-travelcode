@@ -8,6 +8,33 @@ import {
   TravelCodeImpersonationCompanyRequiredError,
 } from "../util/impersonation.js";
 
+const MESSAGE_MAX = 400;
+
+/**
+ * A platform error as the model may see it: no URLs, file paths, stack traces
+ * or raw payloads (they can carry hosts, partner ids or supplier internals).
+ * Field validation text ("passengers.0.dateOfBirth must use …") is kept.
+ */
+export function sanitizeApiMessage(message: string): string {
+  let out = String(message ?? "")
+    .split(/\r?\n/)
+    .filter((line) => !/^\s*#\d+\s|\bstack trace\b|\.php(:\d+)?\b| in \/[\w/.-]+/i.test(line))
+    .join(" ")
+    .replace(/https?:\/\/\S+/gi, "[link]")
+    .replace(/(?:\/[\w.-]+){2,}\.\w+/g, "[path]")
+    .replace(/\{[\s\S]{200,}\}/g, "[details omitted]")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (out.length > MESSAGE_MAX) out = `${out.slice(0, MESSAGE_MAX).trimEnd()}…`;
+  return out || "The request failed";
+}
+
+function isInsufficientScope(status: number, body: unknown): boolean {
+  if (status !== 403 || !body || typeof body !== "object") return false;
+  const b = body as { code?: unknown; error?: { code?: unknown }; message?: unknown };
+  return [b.code, b.error?.code].some((c) => c === 139 || c === "139") || /^\[139\]/.test(String(b.message ?? ""));
+}
+
 export class TravelCodeAuthError extends Error {
   constructor(message: string) {
     super(message);
@@ -26,6 +53,16 @@ export class TravelCodeValidationError extends Error {
   constructor(message: string) {
     super(message);
     this.name = "TravelCodeValidationError";
+  }
+}
+
+/** The OAuth token was not granted the scope this call needs (platform error 139). */
+export class TravelCodeScopeError extends Error {
+  constructor() {
+    super(
+      "This connection is not allowed to do this (for bookings: create, change and cancel orders). Ask the user to reconnect Travel Code in their app and allow that access, then try again.",
+    );
+    this.name = "TravelCodeScopeError";
   }
 }
 
@@ -236,12 +273,14 @@ export class TravelCodeApiClient {
 
       if (!response.ok) {
         let errorMessage: string;
+        let errorBody: ApiErrorResponse | undefined;
         try {
-          const errorBody = (await response.json()) as ApiErrorResponse;
-          errorMessage = errorBody.message || errorBody.text || `HTTP ${response.status}`;
+          errorBody = (await response.json()) as ApiErrorResponse;
+          errorMessage = sanitizeApiMessage(errorBody.message || errorBody.text || `HTTP ${response.status}`);
         } catch {
           errorMessage = `HTTP ${response.status}: ${response.statusText}`;
         }
+        if (isInsufficientScope(response.status, errorBody)) throw new TravelCodeScopeError();
         if (response.status === 401) throw new TravelCodeAuthError(errorMessage);
         if (response.status === 404) throw new TravelCodeNotFoundError(errorMessage);
         if (response.status >= 500) throw new TravelCodeServerError(errorMessage);
@@ -380,9 +419,13 @@ export class TravelCodeApiClient {
         errorBody.text ||
         fieldErrors ||
         `HTTP ${response.status}`;
-      errorMessage = codeStr ? `${codeStr}: ${message}` : message;
+      errorMessage = sanitizeApiMessage(codeStr ? `${codeStr}: ${message}` : message);
     } catch {
       errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+    }
+
+    if (isInsufficientScope(response.status, parsedBody)) {
+      throw new TravelCodeScopeError();
     }
 
     if (
