@@ -2,15 +2,18 @@ import { describe, it, expect, vi } from "vitest";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
+import { ElicitRequestSchema } from "@modelcontextprotocol/sdk/types.js";
 import { createServer } from "../../src/server.js";
 import { registerCreateOrder } from "../../src/tools/create-order.js";
 import { TravelCodeNotFoundError, type TravelCodeApiClient } from "../../src/client/api-client.js";
 import { shortFlightOfferRef } from "../../src/util/flight-offer-ref.js";
 
+// The person confirms every write through elicitation (the server-side confirm step).
 async function connect(server: McpServer): Promise<Client> {
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
   await server.connect(serverTransport);
-  const client = new Client({ name: "test", version: "0.0.0" });
+  const client = new Client({ name: "test", version: "0.0.0" }, { capabilities: { elicitation: {} } });
+  client.setRequestHandler(ElicitRequestSchema, async () => ({ action: "accept", content: { confirm: true } }));
   await client.connect(clientTransport);
   return client;
 }
