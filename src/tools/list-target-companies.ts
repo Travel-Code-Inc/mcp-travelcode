@@ -3,6 +3,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { TravelCodeApiClient } from "../client/api-client.js";
 import { TargetCompany } from "../util/impersonation.js";
 import { withImpersonation } from "../util/impersonation-tool.js";
+import { READ_ONLY_TOOL } from "../util/tool-annotations.js";
 
 export const listTargetCompaniesSchema = {
   actAs: z
@@ -21,6 +22,7 @@ export function registerListTargetCompanies(server: McpServer, client: TravelCod
     "list_target_companies",
     "List the legal-entity companies attached to a user, for admin impersonation. Call this when another tool tells you the target user has multiple companies and you need to pick one before retrying.",
     listTargetCompaniesSchema,
+    READ_ONLY_TOOL,
     withImpersonation(async () => {
       try {
         const data = await client.get<CompaniesResponse>("/companies");

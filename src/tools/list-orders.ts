@@ -4,6 +4,7 @@ import { TravelCodeApiClient } from "../client/api-client.js";
 import { OrderList } from "../client/types.js";
 import { formatOrderList } from "../formatters/order-formatter.js";
 import { impersonationInputSchema, withImpersonation } from "../util/impersonation-tool.js";
+import { READ_ONLY_TOOL } from "../util/tool-annotations.js";
 
 export const listOrdersSchema = {
   status: z
@@ -30,6 +31,7 @@ export function registerListOrders(server: McpServer, client: TravelCodeApiClien
     "list_orders",
     "List the user's bookings with optional filtering by status, booking reference, traveler name, or date range. Supports paging and sorting. Speak in plain language to the user — never quote internal labels, REST routes, or error codes.",
     { ...listOrdersSchema, ...impersonationInputSchema },
+    READ_ONLY_TOOL,
     withImpersonation(async ({ status, pnr, passenger_name, date_from, date_to, sort, sort_order, offset, limit }) => {
       try {
         const data = await client.get<OrderList>("/orders", {

@@ -4,6 +4,7 @@ import { TravelCodeApiClient } from "../client/api-client.js";
 import { OrderEnvelope, OrderFull } from "../client/types.js";
 import { formatOrderDetail } from "../formatters/order-formatter.js";
 import { impersonationInputSchema, withImpersonation } from "../util/impersonation-tool.js";
+import { READ_ONLY_TOOL } from "../util/tool-annotations.js";
 
 export const getOrderSchema = {
   order_id: z.number().int().describe("Order ID"),
@@ -14,6 +15,7 @@ export function registerGetOrder(server: McpServer, client: TravelCodeApiClient)
     "get_order",
     "Get full details of a booking — travelers, services, tickets, and payment status. Speak about 'the booking' to the user; never quote internal labels, REST routes, or error codes.",
     { ...getOrderSchema, ...impersonationInputSchema },
+    READ_ONLY_TOOL,
     withImpersonation(async ({ order_id }) => {
       try {
         const raw = await client.get<OrderEnvelope | OrderFull>(`/orders/${order_id}`);

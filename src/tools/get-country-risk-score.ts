@@ -3,6 +3,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { TravelCodeApiClient } from "../client/api-client.js";
 import { CountryRiskScoreEnvelope } from "../client/types.js";
 import { formatCountryRiskScore } from "../formatters/risk-alerts-formatter.js";
+import { READ_ONLY_TOOL } from "../util/tool-annotations.js";
 
 export const getCountryRiskScoreSchema = {
   iso: z
@@ -46,6 +47,7 @@ export function registerGetCountryRiskScore(server: McpServer, client: TravelCod
       "USER-FACING LANGUAGE: 'risk score', 'safety rating'. Mention country by name, not ISO.",
     ].join("\n"),
     getCountryRiskScoreSchema,
+    READ_ONLY_TOOL,
     getCountryRiskScoreHandler(client),
   );
 }

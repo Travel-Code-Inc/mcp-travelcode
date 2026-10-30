@@ -4,6 +4,7 @@ import { TravelCodeApiClient } from "../client/api-client.js";
 import { HotelOffersResponse } from "../client/types.js";
 import { formatHotelOffers } from "../formatters/hotel-formatter.js";
 import { impersonationInputSchema, withImpersonation } from "../util/impersonation-tool.js";
+import { READ_ONLY_TOOL } from "../util/tool-annotations.js";
 
 const guestSchema = z.object({
   adults: z.number().int().min(1).max(4).describe("Number of adults (1-4)"),
@@ -43,6 +44,7 @@ export function registerGetHotelOffers(server: McpServer, client: TravelCodeApiC
       "If the originating search_hotels call used actAs/actAsCompanyId, pass the SAME values here so the offer fetch runs as the same target user. Mismatching impersonation will return a different rate or 404.",
     ].join("\n"),
     { ...getHotelOffersSchema, ...impersonationInputSchema },
+    READ_ONLY_TOOL,
     withImpersonation(async ({ id, checkin, checkout, country_code, guests, location }) => {
       try {
         const body: Record<string, unknown> = {

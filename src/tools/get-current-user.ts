@@ -6,6 +6,7 @@ import {
   USER_ROLE_LABEL,
 } from "../client/types.js";
 import { impersonationInputSchema, withImpersonation } from "../util/impersonation-tool.js";
+import { READ_ONLY_TOOL } from "../util/tool-annotations.js";
 
 export const getCurrentUserSchema = {};
 
@@ -31,6 +32,7 @@ export function registerGetCurrentUser(server: McpServer, client: TravelCodeApiC
       "  • Other roles: standard flow described in each tool's own documentation.",
     ].join("\n"),
     { ...getCurrentUserSchema, ...impersonationInputSchema },
+    READ_ONLY_TOOL,
     withImpersonation(async () => {
       try {
         const me = await client.get<CurrentUser>("/user/me");

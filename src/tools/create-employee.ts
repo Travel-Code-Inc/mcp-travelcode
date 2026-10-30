@@ -4,6 +4,7 @@ import { TravelCodeApiClient, TravelCodeValidationError } from "../client/api-cl
 import { EmployeeDetail } from "../client/types.js";
 import { impersonationInputSchema, withImpersonation } from "../util/impersonation-tool.js";
 import { formatEmployeeDetail } from "../formatters/employee-formatter.js";
+import { ADDITIVE_WRITE_TOOL } from "../util/tool-annotations.js";
 
 export const createEmployeeSchema = {
   firstName: z.string().min(1).describe("Employee first name."),
@@ -45,6 +46,7 @@ export function registerCreateEmployee(server: McpServer, client: TravelCodeApiC
       "  • the email is already registered — ask the user for a different address.",
     ].join("\n"),
     { ...createEmployeeSchema, ...impersonationInputSchema },
+    ADDITIVE_WRITE_TOOL,
     withImpersonation(
       async ({
         firstName,

@@ -74,6 +74,7 @@ export interface FlightSegment {
   arrival: FlightSegmentEndpoint;
   carrier_code: string;
   number: string;
+  flight_number?: string;
   duration: string;
   cabin: string;
 }
@@ -108,10 +109,17 @@ export interface FlightOfferItem {
 }
 
 export interface FlightOffer {
+  /**
+   * Served offer id — the only value POST /v1/orders accepts for a flight
+   * (besides a legacy orderId). Can be very long; never print it raw.
+   */
+  id?: string | null;
   totalPrice: number;
   totalPriceNet: number;
   durationTime: string;
-  items: FlightOfferItem[];
+  // One entry per leg on round-trip / multi-city offers. PHP may serialize a
+  // keyed array as an object, so readers go through Object.values().
+  items: FlightOfferItem[] | Record<string, FlightOfferItem>;
 }
 
 export interface DictionaryAirport {

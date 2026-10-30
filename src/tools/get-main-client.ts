@@ -3,6 +3,7 @@ import { TravelCodeApiClient } from "../client/api-client.js";
 import { ClientFull } from "../client/types.js";
 import { formatClient } from "../formatters/client-formatter.js";
 import { impersonationInputSchema, withImpersonation } from "../util/impersonation-tool.js";
+import { READ_ONLY_TOOL } from "../util/tool-annotations.js";
 
 export const getMainClientSchema = {};
 
@@ -27,6 +28,7 @@ export function registerGetMainClient(server: McpServer, client: TravelCodeApiCl
       "  • If the user rejects the proposed traveler, fall through to search_clients or collect details manually.",
     ].join("\n"),
     { ...getMainClientSchema, ...impersonationInputSchema },
+    READ_ONLY_TOOL,
     withImpersonation(async () => {
       try {
         const data = await client.get<ClientFull>("/clients");

@@ -4,6 +4,7 @@ import { TravelCodeApiClient } from "../client/api-client.js";
 import { ClientFull } from "../client/types.js";
 import { formatClient } from "../formatters/client-formatter.js";
 import { impersonationInputSchema, withImpersonation } from "../util/impersonation-tool.js";
+import { READ_ONLY_TOOL } from "../util/tool-annotations.js";
 
 export const getClientSchema = {
   client_id: z.number().int().describe("Client ID returned by search_clients"),
@@ -14,6 +15,7 @@ export function registerGetClient(server: McpServer, client: TravelCodeApiClient
     "get_client",
     "Get full details of a saved traveler — passport documents and loyalty memberships needed for booking. Typical flow: search_clients → pick the right person → this tool → create_order. Speak about 'this traveler', 'their passport', 'their loyalty programs' to the user; never quote internal labels, REST routes, or error codes.",
     { ...getClientSchema, ...impersonationInputSchema },
+    READ_ONLY_TOOL,
     withImpersonation(async ({ client_id }) => {
       try {
         const data = await client.get<ClientFull>(`/clients/${client_id}`);

@@ -3,6 +3,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { TravelCodeApiClient } from "../client/api-client.js";
 import { TelegramInitResponse } from "../client/types.js";
 import { formatTelegramInit } from "../formatters/notifications-formatter.js";
+import { ADDITIVE_WRITE_TOOL } from "../util/tool-annotations.js";
 
 export const initTelegramLinkSchema = {
   lang: z.enum(["en", "ru"]).default("en").describe("Language for any human-readable fields."),
@@ -19,6 +20,7 @@ export function registerInitTelegramLink(server: McpServer, client: TravelCodeAp
       "The agent cannot complete the link itself. After the user presses Start, poll get_telegram_status until connected.",
     ].join("\n"),
     initTelegramLinkSchema,
+    ADDITIVE_WRITE_TOOL,
     async ({ lang }) => {
       try {
         const data = await client.post<TelegramInitResponse>(

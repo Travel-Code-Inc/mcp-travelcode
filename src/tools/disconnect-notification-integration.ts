@@ -3,6 +3,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { TravelCodeApiClient } from "../client/api-client.js";
 import { NotificationToggleResponse } from "../client/types.js";
 import { formatDisconnect } from "../formatters/notifications-formatter.js";
+import { DESTRUCTIVE_WRITE_TOOL } from "../util/tool-annotations.js";
 
 export const disconnectNotificationIntegrationSchema = {
   channel: z
@@ -27,6 +28,7 @@ export function registerDisconnectNotificationIntegration(server: McpServer, cli
       "Calling on an already-disconnected channel is a safe no-op.",
     ].join("\n"),
     disconnectNotificationIntegrationSchema,
+    DESTRUCTIVE_WRITE_TOOL,
     async ({ channel, lang }) => {
       try {
         await client.delete<NotificationToggleResponse>(

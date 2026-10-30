@@ -3,6 +3,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { TravelCodeApiClient } from "../client/api-client.js";
 import { EmailBccMutationResponse } from "../client/types.js";
 import { formatBccAdd } from "../formatters/notifications-formatter.js";
+import { ADDITIVE_WRITE_TOOL } from "../util/tool-annotations.js";
 
 export const addNotificationEmailBccSchema = {
   group_code: z
@@ -37,6 +38,7 @@ export function registerAddNotificationEmailBcc(server: McpServer, client: Trave
       "  • The same email can be added independently to different groups; each group needs its own confirmation.",
     ].join("\n"),
     addNotificationEmailBccSchema,
+    ADDITIVE_WRITE_TOOL,
     async ({ group_code, email, lang }) => {
       try {
         const data = await client.post<EmailBccMutationResponse>(

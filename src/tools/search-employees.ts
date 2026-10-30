@@ -4,6 +4,7 @@ import { TravelCodeApiClient } from "../client/api-client.js";
 import { EmployeesSearchResponse } from "../client/types.js";
 import { impersonationInputSchema, withImpersonation } from "../util/impersonation-tool.js";
 import { formatEmployeeList } from "../formatters/employee-formatter.js";
+import { READ_ONLY_TOOL } from "../util/tool-annotations.js";
 
 export const searchEmployeesSchema = {
   q: z
@@ -48,6 +49,7 @@ export function registerSearchEmployees(server: McpServer, client: TravelCodeApi
       "Available to directors and travel managers (also account admins/editors); scope is the caller's own companies.",
     ].join("\n"),
     { ...searchEmployeesSchema, ...impersonationInputSchema },
+    READ_ONLY_TOOL,
     withImpersonation(
       async ({
         q,

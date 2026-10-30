@@ -4,6 +4,7 @@ import { TravelCodeApiClient } from "../client/api-client.js";
 import { TravelersListResponse } from "../client/types.js";
 import { formatTravelerList } from "../formatters/traveler-formatter.js";
 import { impersonationInputSchema, withImpersonation } from "../util/impersonation-tool.js";
+import { READ_ONLY_TOOL } from "../util/tool-annotations.js";
 
 export const searchTravelersSchema = {
   active: z
@@ -110,6 +111,7 @@ export function registerSearchTravelers(server: McpServer, client: TravelCodeApi
       "Visibility: an admin sees everyone in the agency; a regular user sees only their own trips.",
     ].join("\n"),
     { ...searchTravelersSchema, ...impersonationInputSchema },
+    READ_ONLY_TOOL,
     searchTravelersHandler(client),
   );
 }

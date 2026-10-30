@@ -3,6 +3,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { TravelCodeApiClient } from "../client/api-client.js";
 import { SlackInstallUrlResponse } from "../client/types.js";
 import { formatSlackInstallUrl } from "../formatters/notifications-formatter.js";
+import { READ_ONLY_TOOL } from "../util/tool-annotations.js";
 
 export const getSlackInstallUrlSchema = {
   return_url: z
@@ -26,6 +27,7 @@ export function registerGetSlackInstallUrl(server: McpServer, client: TravelCode
       "The agent cannot complete the OAuth flow itself — once the user authorizes in the browser, poll get_slack_status (or list_notification_integrations) to confirm the connection.",
     ].join("\n"),
     getSlackInstallUrlSchema,
+    READ_ONLY_TOOL,
     async ({ return_url, lang }) => {
       try {
         const data = await client.get<SlackInstallUrlResponse>(

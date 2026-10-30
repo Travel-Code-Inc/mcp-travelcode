@@ -4,6 +4,7 @@ import { TravelCodeApiClient } from "../client/api-client.js";
 import { TravelPoliciesResponse } from "../client/types.js";
 import { impersonationInputSchema, withImpersonation } from "../util/impersonation-tool.js";
 import { formatTravelPolicyList } from "../formatters/travel-policy-formatter.js";
+import { READ_ONLY_TOOL } from "../util/tool-annotations.js";
 
 export const listTravelPoliciesSchema = {
   companyId: z
@@ -29,6 +30,7 @@ export function registerListTravelPolicies(server: McpServer, client: TravelCode
       "Available to directors and travel managers (also account admins/editors). The list is not paginated — all policies come back at once.",
     ].join("\n"),
     { ...listTravelPoliciesSchema, ...impersonationInputSchema },
+    READ_ONLY_TOOL,
     withImpersonation(async ({ companyId, q }: { companyId?: number; q?: string }) => {
       try {
         const data = await client.get<TravelPoliciesResponse>("/travel-policies", {

@@ -3,6 +3,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { TravelCodeApiClient } from "../client/api-client.js";
 import { NotificationUpdateResponse } from "../client/types.js";
 import { formatSettingUpdate } from "../formatters/notifications-formatter.js";
+import { DESTRUCTIVE_WRITE_TOOL } from "../util/tool-annotations.js";
 
 export const updateNotificationSettingSchema = {
   channel: z
@@ -28,6 +29,7 @@ export function registerUpdateNotificationSetting(server: McpServer, client: Tra
       "Confirm with the user in plain words before turning OFF anything they care about — silenced notifications can mean missed bookings.",
     ].join("\n"),
     updateNotificationSettingSchema,
+    DESTRUCTIVE_WRITE_TOOL,
     async ({ channel, type_code, value, lang }) => {
       try {
         const data = await client.patch<NotificationUpdateResponse>(

@@ -4,6 +4,7 @@ import { TravelCodeApiClient } from "../client/api-client.js";
 import { DepartmentsResponse } from "../client/types.js";
 import { impersonationInputSchema, withImpersonation } from "../util/impersonation-tool.js";
 import { formatDepartmentTree } from "../formatters/department-formatter.js";
+import { READ_ONLY_TOOL } from "../util/tool-annotations.js";
 
 export const listDepartmentsSchema = {
   companyId: z
@@ -25,6 +26,7 @@ export function registerListDepartments(server: McpServer, client: TravelCodeApi
       "Use the department ids from this tree when moving employees between departments or reading department-scoped travel policies.",
     ].join("\n"),
     { ...listDepartmentsSchema, ...impersonationInputSchema },
+    READ_ONLY_TOOL,
     withImpersonation(async ({ companyId }: { companyId?: number }) => {
       try {
         const path = companyId ? `/companies/${companyId}/departments` : "/companies/departments";

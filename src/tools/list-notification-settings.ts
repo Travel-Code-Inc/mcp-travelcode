@@ -3,6 +3,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { TravelCodeApiClient } from "../client/api-client.js";
 import { NotificationSettingsList } from "../client/types.js";
 import { formatSettingsList } from "../formatters/notifications-formatter.js";
+import { READ_ONLY_TOOL } from "../util/tool-annotations.js";
 
 export const listNotificationSettingsSchema = {
   channel: z
@@ -26,6 +27,7 @@ export function registerListNotificationSettings(server: McpServer, client: Trav
       "Pair with update_notification_setting to turn a specific type on or off. Use this to answer 'show me what notifications I get' or 'what kinds of notifications are there for slack'.",
     ].join("\n"),
     listNotificationSettingsSchema,
+    READ_ONLY_TOOL,
     async ({ channel, enabled, lang }) => {
       try {
         const data = await client.get<NotificationSettingsList>(

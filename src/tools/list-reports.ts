@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { TravelCodeApiClient } from "../client/api-client.js";
+import { READ_ONLY_TOOL } from "../util/tool-annotations.js";
 
 export const listReportsSchema = {
   lang: z.enum(["en", "ru"]).optional().describe("Language for report titles and descriptions (default: account language)"),
@@ -18,6 +19,7 @@ export function registerListReports(server: McpServer, client: TravelCodeApiClie
     "list_reports",
     "List analytics reports (Dynamic Reports) available to the current user. Returns report ids to use with get_report and get_report_element. New reports appear here automatically as they are added on the backend.",
     listReportsSchema,
+    READ_ONLY_TOOL,
     async ({ lang }) => {
       try {
         const data = await client.get<ReportSummary[]>("/reports", { lang });

@@ -2,6 +2,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { TravelCodeApiClient } from "../client/api-client.js";
 import { ActiveRiskAlertsResponse } from "../client/types.js";
 import { formatActiveAlerts } from "../formatters/risk-alerts-formatter.js";
+import { READ_ONLY_TOOL } from "../util/tool-annotations.js";
 
 export function getActiveRiskAlertsHandler(client: TravelCodeApiClient) {
   return async () => {
@@ -39,6 +40,7 @@ export function registerGetActiveRiskAlerts(server: McpServer, client: TravelCod
       "For a country-focused view prefer get_country_advisory + get_risk_alerts_by_country.",
     ].join("\n"),
     {},
+    READ_ONLY_TOOL,
     getActiveRiskAlertsHandler(client),
   );
 }

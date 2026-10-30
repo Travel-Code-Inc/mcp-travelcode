@@ -3,6 +3,7 @@ import { TravelCodeApiClient } from "../client/api-client.js";
 import { TravelerPreferences } from "../client/types.js";
 import { formatPreferences } from "../formatters/preferences-formatter.js";
 import { impersonationInputSchema, withImpersonation } from "../util/impersonation-tool.js";
+import { READ_ONLY_TOOL } from "../util/tool-annotations.js";
 
 export const getTravelerPreferencesSchema = {};
 
@@ -21,6 +22,7 @@ export function registerGetTravelerPreferences(server: McpServer, client: Travel
       "If nothing is saved, the tool says so — proceed without assumptions and ask the user when a choice matters.",
     ].join("\n"),
     { ...getTravelerPreferencesSchema, ...impersonationInputSchema },
+    READ_ONLY_TOOL,
     withImpersonation(async () => {
       try {
         const data = await client.get<TravelerPreferences>("/user/preferences");

@@ -2,6 +2,7 @@ import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { TravelCodeApiClient } from "../client/api-client.js";
 import { HotelLocationDetailResponse } from "../client/types.js";
+import { READ_ONLY_TOOL } from "../util/tool-annotations.js";
 
 export const getHotelLocationSchema = {
   id: z.number().int().describe("Location ID (from search_hotel_locations)"),
@@ -12,6 +13,7 @@ export function registerGetHotelLocation(server: McpServer, client: TravelCodeAp
     "get_hotel_location",
     "Get hotel location details by ID. Returns name and entity type (city, region, hotel).",
     getHotelLocationSchema,
+    READ_ONLY_TOOL,
     async ({ id }) => {
       try {
         const data = await client.getWithTokenParam<HotelLocationDetailResponse>(

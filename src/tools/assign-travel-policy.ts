@@ -4,6 +4,7 @@ import { TravelCodeApiClient } from "../client/api-client.js";
 import { AssignTravelPolicyResponse } from "../client/types.js";
 import { impersonationInputSchema, withImpersonation } from "../util/impersonation-tool.js";
 import { formatAssignTravelPolicyResult, formatAssignConflicts } from "../formatters/assign-policy-formatter.js";
+import { DESTRUCTIVE_WRITE_TOOL } from "../util/tool-annotations.js";
 
 export const assignTravelPolicySchema = {
   userIds: z
@@ -33,6 +34,7 @@ export function registerAssignTravelPolicy(server: McpServer, client: TravelCode
       "  • Available to directors and travel managers (also account admins/editors).",
     ].join("\n"),
     { ...assignTravelPolicySchema, ...impersonationInputSchema },
+    DESTRUCTIVE_WRITE_TOOL,
     withImpersonation(
       async ({
         userIds,
