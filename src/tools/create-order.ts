@@ -19,6 +19,7 @@ import {
 import { impersonationInputSchema, withImpersonation } from "../util/impersonation-tool.js";
 import { isShortFlightOfferRef, resolveFlightOfferRef } from "../util/flight-offer-ref.js";
 import { ADDITIVE_WRITE_TOOL } from "../util/tool-annotations.js";
+import { confirmationInputSchema, withConfirmation } from "../util/confirmation.js";
 
 const documentSchema = z.object({
   type: z
@@ -230,11 +231,13 @@ export function registerCreateOrder(server: McpServer, client: TravelCodeApiClie
       "",
       "If the offer changed between search and booking (price or cancellation rules differ): describe the change in plain words, ask the user to confirm explicitly, then retry the booking — never auto-retry. The retry token is opaque; do not show it to the user.",
       "",
+      "CONFIRMATION: the server confirms with the user itself — either it asks them directly, or the first call returns NOT DONE YET with a summary and a token. Then show that summary, wait for the user's yes in their next message, and call again with the same arguments plus confirmation_token. Do not ask for a separate yes before the first call.",
+      "",
       "Dates: accept any common format from the user; we normalize internally. If a date is ambiguous (e.g. 03.04.2026 with no locale clue), the call fails and you must re-ask the user.",
     ].join("\n"),
-    { ...createOrderSchema, ...impersonationInputSchema },
+    { ...createOrderSchema, ...impersonationInputSchema, ...confirmationInputSchema },
     ADDITIVE_WRITE_TOOL,
-    withImpersonation(async ({
+    withConfirmation(server, "create_order", createOrderSummary, withImpersonation(async ({
       service_type,
       session_id,
       offer_id,
@@ -368,6 +371,25 @@ export function registerCreateOrder(server: McpServer, client: TravelCodeApiClie
           isError: true,
         };
       }
-    }),
+    })),
   );
+}
+
+function personName(p: Record<string, unknown>): string {
+  return [p.firstName, p.lastName].filter(Boolean).join(" ") || "a traveller";
+}
+
+/** Plain-language summary of a booking for the confirmation step. */
+export function createOrderSummary(args: Record<string, unknown>): string {
+  const flight = args.service_type === "flight";
+  const people = flight
+    ? ((args.passengers as Array<Record<string, unknown>>) || []).map(personName)
+    : ((args.rooms as Array<{ guests?: Array<Record<string, unknown>> }>) || []).flatMap((r) => (r.guests || []).map(personName));
+  return [
+    flight ? "Book the flight the user picked." : "Book the hotel room the user picked.",
+    `Travellers: ${people.join(", ") || "—"}.`,
+    args.payment_method ? `Payment: ${String(args.payment_method)}.` : "",
+    flight ? "The seats are held with the airline; the ticket is issued after the order is paid." : "",
+    args.actAs ? `On behalf of: ${String(args.actAs)}` : "",
+  ].filter(Boolean).join("\n");
 }

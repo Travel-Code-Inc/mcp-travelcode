@@ -5,6 +5,7 @@ import { ModifyResult } from "../client/types.js";
 import { formatModifyResult } from "../formatters/order-formatter.js";
 import { impersonationInputSchema, withImpersonation } from "../util/impersonation-tool.js";
 import { DESTRUCTIVE_WRITE_TOOL } from "../util/tool-annotations.js";
+import { confirmationInputSchema, withConfirmation } from "../util/confirmation.js";
 
 export const modifyOrderSchema = {
   order_id: z.number().int().describe("Order ID to modify"),
@@ -23,10 +24,19 @@ export const modifyOrderSchema = {
 export function registerModifyOrder(server: McpServer, client: TravelCodeApiClient) {
   server.tool(
     "modify_order",
-    "Change an existing booking: contact info, passport, dates (rebook), or add baggage. Always call check_order_modification first to learn which changes are allowed for this booking. Modification is asynchronous — use get_order afterwards to confirm the result. Speak about 'the booking' and 'the change' in plain language to the user — never quote internal labels, REST routes, or error codes.",
-    { ...modifyOrderSchema, ...impersonationInputSchema },
+    "Change an existing booking: contact info, passport, dates (rebook), or add baggage. Always call check_order_modification first to learn which changes are allowed for this booking. The server takes the user's confirmation: the first call may return NOT DONE YET with a summary and a token — show it, and after the user's yes call again with the same arguments plus confirmation_token. Modification is asynchronous — use get_order afterwards to confirm the result. Speak about 'the booking' and 'the change' in plain language to the user — never quote internal labels, REST routes, or error codes.",
+    { ...modifyOrderSchema, ...impersonationInputSchema, ...confirmationInputSchema },
     DESTRUCTIVE_WRITE_TOOL,
-    withImpersonation(async ({ order_id, type, changes }) => {
+    withConfirmation(
+      server,
+      "modify_order",
+      (args) =>
+        [
+          `Change booking ${String(args.order_id)}: ${String(args.type)}.`,
+          `Changes: ${JSON.stringify(args.changes)}`,
+          args.actAs ? `On behalf of: ${String(args.actAs)}` : "",
+        ].filter(Boolean).join("\n"),
+      withImpersonation(async ({ order_id, type, changes }) => {
       try {
         const data = await client.post<ModifyResult>(`/orders/${order_id}/modify`, {
           type,
@@ -42,6 +52,6 @@ export function registerModifyOrder(server: McpServer, client: TravelCodeApiClie
           isError: true,
         };
       }
-    })
+    }))
   );
 }

@@ -10,6 +10,7 @@ import {
 import { formatContactResult } from "../formatters/traveler-formatter.js";
 import { impersonationInputSchema, withImpersonation } from "../util/impersonation-tool.js";
 import { DESTRUCTIVE_WRITE_TOOL } from "../util/tool-annotations.js";
+import { confirmationInputSchema, withConfirmation } from "../util/confirmation.js";
 
 export const contactTravelersSchema = {
   traveler_ids: z
@@ -87,12 +88,23 @@ export function registerContactTravelers(server: McpServer, client: TravelCodeAp
       "",
       "USER-FACING LANGUAGE: speak about 'reaching out', 'pinging', 'messaging the team'. Never quote internal labels, REST routes, or error codes.",
       "",
-      "Before calling: confirm with the user which travelers, which channel, and which template. For template='custom', show the drafted message back and get approval first — this triggers a real outbound message.",
+      "Before calling: agree with the user which travelers, which channel, and which template (for template='custom', the text). This triggers a real outbound message.",
+      "CONFIRMATION: the server confirms with the user itself — either it asks them directly, or the first call returns NOT DONE YET with a summary and a token. Then show that summary, wait for the user's yes in their next message, and call again with the same arguments plus confirmation_token. Do not ask for a separate yes before the first call.",
       "",
       "Partial success is normal: the response may contain both 'sent' and 'failed' arrays — surface both to the user.",
     ].join("\n"),
-    { ...contactTravelersSchema, ...impersonationInputSchema },
+    { ...contactTravelersSchema, ...impersonationInputSchema, ...confirmationInputSchema },
     DESTRUCTIVE_WRITE_TOOL,
-    contactTravelersHandler(client),
+    withConfirmation(
+      server,
+      "contact_travelers",
+      (args) =>
+        [
+          `Send a ${String(args.template)} message by ${String(args.channel)} to ${Array.isArray(args.traveler_ids) ? args.traveler_ids.length : 0} traveller(s).`,
+          args.template === "custom" && args.custom_message ? `Message: ${String(args.custom_message)}` : "",
+          args.actAs ? `On behalf of: ${String(args.actAs)}` : "",
+        ].filter(Boolean).join("\n"),
+      contactTravelersHandler(client),
+    ),
   );
 }
