@@ -3,6 +3,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { TravelCodeApiClient } from "../client/api-client.js";
 import { TelegramStatus } from "../client/types.js";
 import { formatTelegramStatus } from "../formatters/notifications-formatter.js";
+import { READ_ONLY_TOOL } from "../util/tool-annotations.js";
 
 export const getTelegramStatusSchema = {
   lang: z.enum(["en", "ru"]).default("en").describe("Language for any human-readable fields."),
@@ -19,6 +20,7 @@ export function registerGetTelegramStatus(server: McpServer, client: TravelCodeA
       "Use this after init_telegram_link to poll until the user finishes linking in the Telegram app.",
     ].join("\n"),
     getTelegramStatusSchema,
+    READ_ONLY_TOOL,
     async ({ lang }) => {
       try {
         const data = await client.get<TelegramStatus>(

@@ -3,6 +3,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { TravelCodeApiClient } from "../client/api-client.js";
 import { NotificationToggleResponse } from "../client/types.js";
 import { formatActivate } from "../formatters/notifications-formatter.js";
+import { ADDITIVE_WRITE_TOOL } from "../util/tool-annotations.js";
 
 export const activateNotificationIntegrationSchema = {
   channel: z
@@ -24,6 +25,7 @@ export function registerActivateNotificationIntegration(server: McpServer, clien
       "If the channel was never connected (status 'not_connected'), this will fail — start a connection flow with init_telegram_link or get_slack_install_url instead. Calling on an already-active channel is a safe no-op.",
     ].join("\n"),
     activateNotificationIntegrationSchema,
+    ADDITIVE_WRITE_TOOL,
     async ({ channel, lang }) => {
       try {
         await client.post<NotificationToggleResponse>(

@@ -3,6 +3,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { TravelCodeApiClient } from "../client/api-client.js";
 import { AirportBoardResponse } from "../client/types.js";
 import { formatAirportBoard } from "../formatters/flight-stats-formatter.js";
+import { READ_ONLY_TOOL } from "../util/tool-annotations.js";
 
 export const getAirportFlightsSchema = {
   airport_code: z
@@ -33,6 +34,7 @@ export function registerGetAirportFlights(server: McpServer, client: TravelCodeA
     "get_airport_flights",
     "Get the departure or arrival board for an airport within a time window (max 12 hours). Shows all flights with their status, terminals, and gates. Use this to monitor departures/arrivals or check for widespread delays.",
     getAirportFlightsSchema,
+    READ_ONLY_TOOL,
     async ({ airport_code, direction, from_time, to_time, include_codeshares, include_cargo }) => {
       try {
         // Validate time window (max 12 hours)

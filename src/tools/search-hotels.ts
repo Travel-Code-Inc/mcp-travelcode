@@ -4,6 +4,7 @@ import { TravelCodeApiClient } from "../client/api-client.js";
 import { HotelOffer, HotelSSECompleted, HotelSSECount, HotelSSEHotelsBatch, HotelSSESortedBatch } from "../client/types.js";
 import { formatHotelResults } from "../formatters/hotel-formatter.js";
 import { impersonationInputSchema, withImpersonation } from "../util/impersonation-tool.js";
+import { READ_ONLY_TOOL } from "../util/tool-annotations.js";
 
 const guestSchema = z.object({
   adults: z.number().int().min(1).max(4).describe("Number of adults (1-4)"),
@@ -114,6 +115,7 @@ export function registerSearchHotels(server: McpServer, client: TravelCodeApiCli
       "  • Developer: prefix the user-facing reply with '[Developer mode]'.",
     ].join("\n"),
     { ...searchHotelsSchema, ...impersonationInputSchema },
+    READ_ONLY_TOOL,
     withImpersonation(async ({ location, checkin, checkout, country_code, guests, sort, offset, limit, filter }) => {
       try {
         const body: Record<string, unknown> = {

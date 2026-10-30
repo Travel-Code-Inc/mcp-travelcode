@@ -3,6 +3,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { TravelCodeApiClient } from "../client/api-client.js";
 import { NotificationSettingDetail } from "../client/types.js";
 import { formatSettingDetail } from "../formatters/notifications-formatter.js";
+import { READ_ONLY_TOOL } from "../util/tool-annotations.js";
 
 export const getNotificationSettingSchema = {
   channel: z
@@ -23,6 +24,7 @@ export function registerGetNotificationSetting(server: McpServer, client: Travel
       "USER-FACING LANGUAGE: speak about 'order updates on Telegram', 'trip reminders on Slack'. Never quote typeCode strings, REST routes, or error codes.",
     ].join("\n"),
     getNotificationSettingSchema,
+    READ_ONLY_TOOL,
     async ({ channel, type_code, lang }) => {
       try {
         const data = await client.get<NotificationSettingDetail>(

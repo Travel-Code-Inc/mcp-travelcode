@@ -3,6 +3,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { TravelCodeApiClient } from "../client/api-client.js";
 import { AirportDelayStats } from "../client/types.js";
 import { formatAirportDelayStats } from "../formatters/flight-stats-formatter.js";
+import { READ_ONLY_TOOL } from "../util/tool-annotations.js";
 
 export const getAirportDelayStatsSchema = {
   airport_code: z
@@ -18,6 +19,7 @@ export function registerGetAirportDelayStats(server: McpServer, client: TravelCo
     "get_airport_delay_stats",
     "Get current delay statistics for an airport on a specific date. Shows average departure/arrival delays and cancellation rates. Use this during weather events or disruptions to assess the situation at an airport.",
     getAirportDelayStatsSchema,
+    READ_ONLY_TOOL,
     async ({ airport_code, date }) => {
       try {
         const code = airport_code.toUpperCase();

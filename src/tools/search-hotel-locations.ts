@@ -3,6 +3,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { TravelCodeApiClient } from "../client/api-client.js";
 import { HotelLocationSearchResponse } from "../client/types.js";
 import { formatHotelLocations } from "../formatters/hotel-formatter.js";
+import { READ_ONLY_TOOL } from "../util/tool-annotations.js";
 
 export const searchHotelLocationsSchema = {
   query: z.string().describe("Search query — city, region, or hotel name (supports Cyrillic and Latin)"),
@@ -14,6 +15,7 @@ export function registerSearchHotelLocations(server: McpServer, client: TravelCo
     "search_hotel_locations",
     "Search for hotel locations (cities, regions, hotels) by name. Returns location IDs needed for hotel search.",
     searchHotelLocationsSchema,
+    READ_ONLY_TOOL,
     async ({ query, limit }) => {
       try {
         const data = await client.getWithTokenParam<HotelLocationSearchResponse>(

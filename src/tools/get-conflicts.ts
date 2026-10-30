@@ -3,6 +3,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { TravelCodeApiClient } from "../client/api-client.js";
 import { ConflictsEnvelope } from "../client/types.js";
 import { formatConflicts } from "../formatters/risk-alerts-formatter.js";
+import { READ_ONLY_TOOL } from "../util/tool-annotations.js";
 
 export const getConflictsSchema = {
   days: z
@@ -87,6 +88,7 @@ export function registerGetConflicts(server: McpServer, client: TravelCodeApiCli
       "Severity ladder: Critical > High > Medium. Use min_severity to cut through noise.",
     ].join("\n"),
     getConflictsSchema,
+    READ_ONLY_TOOL,
     getConflictsHandler(client),
   );
 }

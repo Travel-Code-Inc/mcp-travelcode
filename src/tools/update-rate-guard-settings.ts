@@ -4,6 +4,7 @@ import { TravelCodeApiClient } from "../client/api-client.js";
 import { RateGuardSettings } from "../client/types.js";
 import { impersonationInputSchema, withImpersonation } from "../util/impersonation-tool.js";
 import { formatRateGuardSettings } from "../formatters/rate-guard-formatter.js";
+import { DESTRUCTIVE_WRITE_TOOL } from "../util/tool-annotations.js";
 
 const numericOrNull = z.union([z.number(), z.null()]).optional();
 const intOrNull = z.union([z.number().int(), z.null()]).optional();
@@ -44,6 +45,7 @@ export function registerUpdateRateGuardSettings(server: McpServer, client: Trave
       "Editing requires a Pro plan or an admin role; otherwise the REST layer returns a permission error. Operates on the currently active agency of the authenticated user.",
     ].join("\n"),
     { ...updateRateGuardSettingsSchema, ...impersonationInputSchema },
+    DESTRUCTIVE_WRITE_TOOL,
     withImpersonation(async (args) => {
       const { email, autoRebook } = args;
       const body: Record<string, unknown> = {};

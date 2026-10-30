@@ -3,6 +3,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { TravelCodeApiClient } from "../client/api-client.js";
 import { EmailBccDeleteResponse } from "../client/types.js";
 import { formatBccDelete } from "../formatters/notifications-formatter.js";
+import { DESTRUCTIVE_WRITE_TOOL } from "../util/tool-annotations.js";
 
 export const deleteNotificationEmailBccSchema = {
   group_code: z
@@ -36,6 +37,7 @@ export function registerDeleteNotificationEmailBcc(
       "  • Removing does not free the address for re-add limits — re-adding the same email later starts the verification flow from scratch.",
     ].join("\n"),
     deleteNotificationEmailBccSchema,
+    DESTRUCTIVE_WRITE_TOOL,
     async ({ group_code, bcc_id, lang }) => {
       try {
         await client.delete<EmailBccDeleteResponse>(

@@ -3,6 +3,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { TravelCodeApiClient } from "../client/api-client.js";
 import { DepartmentMembersResponse } from "../client/types.js";
 import { impersonationInputSchema, withImpersonation } from "../util/impersonation-tool.js";
+import { DESTRUCTIVE_WRITE_TOOL } from "../util/tool-annotations.js";
 
 export const moveEmployeeToDepartmentSchema = {
   userIds: z
@@ -24,6 +25,7 @@ export function registerMoveEmployeeToDepartment(server: McpServer, client: Trav
       "Employees must belong to the same company as the department. Available to directors and travel managers (also account admins/editors).",
     ].join("\n"),
     { ...moveEmployeeToDepartmentSchema, ...impersonationInputSchema },
+    DESTRUCTIVE_WRITE_TOOL,
     withImpersonation(
       async ({
         userIds,

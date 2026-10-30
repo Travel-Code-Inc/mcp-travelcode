@@ -3,6 +3,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { TravelCodeApiClient } from "../client/api-client.js";
 import { SlackStatus } from "../client/types.js";
 import { formatSlackStatus } from "../formatters/notifications-formatter.js";
+import { READ_ONLY_TOOL } from "../util/tool-annotations.js";
 
 export const getSlackStatusSchema = {
   lang: z.enum(["en", "ru"]).default("en").describe("Language for any human-readable fields."),
@@ -17,6 +18,7 @@ export function registerGetSlackStatus(server: McpServer, client: TravelCodeApiC
       "USER-FACING LANGUAGE: speak about 'your Slack', 'workspace …'. Never quote internal labels or REST routes.",
     ].join("\n"),
     getSlackStatusSchema,
+    READ_ONLY_TOOL,
     async ({ lang }) => {
       try {
         const data = await client.get<SlackStatus>(

@@ -3,6 +3,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { TravelCodeApiClient } from "../client/api-client.js";
 import { AdvisoriesEnvelope } from "../client/types.js";
 import { formatAdvisories } from "../formatters/risk-alerts-formatter.js";
+import { READ_ONLY_TOOL } from "../util/tool-annotations.js";
 
 export const getAdvisoriesSchema = {
   country: z
@@ -62,6 +63,7 @@ export function registerGetAdvisories(server: McpServer, client: TravelCodeApiCl
       "  • Broad sweep → no params, response is sorted high → low.",
     ].join("\n"),
     getAdvisoriesSchema,
+    READ_ONLY_TOOL,
     getAdvisoriesHandler(client),
   );
 }

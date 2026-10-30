@@ -1,8 +1,51 @@
 import {
   HotelLocationSearchResponse,
   HotelOffer,
+  HotelOfferCancelPolicy,
   HotelOffersResponse,
 } from "../client/types.js";
+
+const MAX_ROOM_GROUPS = 12;
+const NO_REFUND_TITLE = /не предусмотрен|невозвратн|non[\s-]?refundable/i;
+
+export interface RateRefundability {
+  refundable: boolean;
+  /** Supplier-local deadline string, exactly as the supplier sent it. */
+  freeCancellationUntil?: string;
+}
+
+/** "YYYY-MM-DD HH:MM:SS" (or with a "T") → comparable "YYYY-MM-DD HH:MM:SS". */
+function comparableDeadline(deadline: string): string {
+  return deadline.trim().replace("T", " ").slice(0, 19);
+}
+
+/**
+ * The supplier's `refundable` flag stays true on rates whose title says no
+ * refund and whose first penalty has already started, so derive it instead.
+ * Deadlines are zone-less supplier-local strings; they are compared as given
+ * against the current UTC time, which is close enough to tell "already
+ * started" from "still ahead" — the original string is what the user sees.
+ */
+export function rateRefundability(policy: HotelOfferCancelPolicy | undefined, now: Date = new Date()): RateRefundability {
+  if (!policy || policy.refundable !== true) return { refundable: false };
+  if (policy.title && NO_REFUND_TITLE.test(policy.title)) return { refundable: false };
+
+  const penalised = (policy.rules ?? [])
+    .filter((r) => r.deadline && Number(r.value) > 0)
+    .sort((a, b) => comparableDeadline(a.deadline).localeCompare(comparableDeadline(b.deadline)));
+  const first = penalised[0];
+  if (!first) return { refundable: true };
+
+  const nowText = now.toISOString().replace("T", " ").slice(0, 19);
+  if (comparableDeadline(first.deadline) <= nowText) return { refundable: false };
+
+  return { refundable: true, freeCancellationUntil: first.deadline };
+}
+
+function formatAmount(amount: unknown, currency: string | undefined): string {
+  if (amount === undefined || amount === null || amount === "") return "";
+  return currency ? `${amount} ${currency}` : String(amount);
+}
 
 export function formatHotelLocations(data: HotelLocationSearchResponse): string {
   if (!data.items || data.items.length === 0) {
@@ -47,6 +90,13 @@ const BOARD_NAMES: Record<string, string> = {
   AI: "All Inclusive",
 };
 
+/** Some suppliers' list items carry no top-level currency; their quote block does. */
+function hotelCurrency(hotel: HotelOffer): string | undefined {
+  const quote = hotel.quiQuo as { currency?: unknown } | undefined;
+  const candidates = [hotel.currency, quote?.currency, hotel.currencySign];
+  return candidates.find((c): c is string => typeof c === "string" && c !== "");
+}
+
 export function formatHotelResults(
   hotels: HotelOffer[],
   totalCount: number,
@@ -76,19 +126,18 @@ export function formatHotelResults(
     const starRating = (hotel.starRating as number) ?? (hotel.stars as number);
     const stars = starRating ? "★".repeat(starRating) : "";
     const name = (hotel.propertyName as string) ?? hotel.name ?? "Unknown Hotel";
-    const pricePerNight = hotel.price != null ? `$${hotel.price}` : "N/A";
-    const totalPrice = (hotel.total as number) != null ? `$${hotel.total}` : "";
+    const currency = hotelCurrency(hotel);
+    const pricePerNight = hotel.price != null ? formatAmount(hotel.price, currency) : "N/A";
+    const totalPrice = formatAmount(hotel.total, currency);
     const boardCode = (hotel.boardCode as string) ?? hotel.board ?? "";
     const mealName = (hotel.meal as string) ?? BOARD_NAMES[boardCode] ?? boardCode;
     const refundable = (hotel.refundable as boolean);
     const refundText = refundable === true ? "Refundable" : refundable === false ? "Non-refundable" : "";
-    const partner = (hotel.partnerName as string) ?? "";
 
     lines.push(`${stars} ${name}`);
     lines.push(`  Price: ${pricePerNight}/night${totalPrice ? ` (total: ${totalPrice})` : ""}`);
     if (mealName) lines.push(`  Meal: ${mealName}`);
-    const tags = [refundText, partner].filter(Boolean).join(" | ");
-    if (tags) lines.push(`  ${tags}`);
+    if (refundText) lines.push(`  ${refundText}`);
     lines.push("");
   }
 
@@ -142,14 +191,16 @@ export function formatHotelOffers(data: HotelOffersResponse): string {
   lines.push(`${roomGroups.length} room types, ${totalRates} rates total:`);
   lines.push("");
 
-  for (const [roomName, group] of roomGroups) {
+  const shownGroups = roomGroups.slice(0, MAX_ROOM_GROUPS);
+
+  for (const [roomName, group] of shownGroups) {
     const cheapest = group.rates.reduce(
       (min, r) => (r.price.nightly < min.price.nightly ? r : min),
       group.rates[0]
     );
     if (!cheapest) continue;
 
-    const refundable = group.rates.some((r) => r.cancelPolicy.refundable);
+    const refundable = group.rates.some((r) => rateRefundability(r.cancelPolicy).refundable);
     const boards = [...new Set(group.rates.map((r) => r.boardName))].join(", ");
 
     lines.push(`--- ${roomName} (${group.rates.length} offers) ---`);
@@ -162,20 +213,21 @@ export function formatHotelOffers(data: HotelOffersResponse): string {
     // so the LLM can quote free-cancellation deadlines and penalties.
     const sorted = [...group.rates].sort((a, b) => a.price.nightly - b.price.nightly);
     for (const rate of sorted.slice(0, 3)) {
-      const policy = rate.cancelPolicy;
-      const cancelTag = policy.refundable
-        ? policy.fullyRefundable
-          ? "Fully refundable"
-          : "Partially refundable"
-        : "Non-refundable";
-      // The wire field is `_offerId` (HotelPageService::generateOfferId
-      // produces xxxxxxxx-xxxxxxxx-xxxxxxxx-xxxxxxxx; HotelRateLookup::find
-      // looks up rates by exactly this value). Some doc revisions call it
-      // `id`, older builds emitted quoteKey/externalId — try in that order
-      // so the LLM always passes the value the booker can resolve.
+      const policy = rate.cancelPolicy ?? { refundable: false, fullyRefundable: false, title: "" };
+      const refund = rateRefundability(policy);
+      const cancelTag = !refund.refundable
+        ? "Non-refundable"
+        : refund.freeCancellationUntil
+          ? `Free cancellation until ${refund.freeCancellationUntil} (hotel local time)`
+          : policy.fullyRefundable
+            ? "Fully refundable"
+            : "Partially refundable";
+      // The REST offers response serializes the booker's `_offerId` as `id`
+      // (HotelRateLookup::find matches on it); `_offerId` and the older
+      // quoteKey/externalId are fallbacks for legacy builds.
       const offerId =
-        rate._offerId ||
         rate.id ||
+        rate._offerId ||
         rate.quoteKey ||
         rate.externalId;
       const policyTag = rate.outOfPolicy ? " | Out of travel policy" : "";
@@ -201,6 +253,11 @@ export function formatHotelOffers(data: HotelOffersResponse): string {
     if (sorted.length > 3) {
       lines.push(`    ... and ${sorted.length - 3} more offers`);
     }
+    lines.push("");
+  }
+
+  if (roomGroups.length > shownGroups.length) {
+    lines.push(`... and ${roomGroups.length - shownGroups.length} more room types not shown.`);
     lines.push("");
   }
 

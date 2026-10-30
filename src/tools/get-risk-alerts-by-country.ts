@@ -2,6 +2,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { TravelCodeApiClient } from "../client/api-client.js";
 import { AlertsByCountryResponse } from "../client/types.js";
 import { formatAlertsByCountry } from "../formatters/risk-alerts-formatter.js";
+import { READ_ONLY_TOOL } from "../util/tool-annotations.js";
 
 export function getRiskAlertsByCountryHandler(client: TravelCodeApiClient) {
   return async () => {
@@ -37,6 +38,7 @@ export function registerGetRiskAlertsByCountry(server: McpServer, client: Travel
       "  • Before deciding whom in the travelers list might be in a hot zone.",
     ].join("\n"),
     {},
+    READ_ONLY_TOOL,
     getRiskAlertsByCountryHandler(client),
   );
 }

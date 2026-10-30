@@ -3,6 +3,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { TravelCodeApiClient } from "../client/api-client.js";
 import { NotificationIntegrationsResponse } from "../client/types.js";
 import { formatIntegrationsList } from "../formatters/notifications-formatter.js";
+import { READ_ONLY_TOOL } from "../util/tool-annotations.js";
 
 export const listNotificationIntegrationsSchema = {
   status: z
@@ -23,6 +24,7 @@ export function registerListNotificationIntegrations(server: McpServer, client: 
       "Use this before suggesting connect/disconnect/activate. Email is always active and cannot be disconnected.",
     ].join("\n"),
     listNotificationIntegrationsSchema,
+    READ_ONLY_TOOL,
     async ({ status, lang }) => {
       try {
         const data = await client.get<NotificationIntegrationsResponse>(

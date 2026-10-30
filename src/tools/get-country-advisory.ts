@@ -3,6 +3,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { TravelCodeApiClient } from "../client/api-client.js";
 import { CountryAdvisoryEnvelope } from "../client/types.js";
 import { formatCountryAdvisory } from "../formatters/risk-alerts-formatter.js";
+import { READ_ONLY_TOOL } from "../util/tool-annotations.js";
 
 export const getCountryAdvisorySchema = {
   iso: z
@@ -46,6 +47,7 @@ export function registerGetCountryAdvisory(server: McpServer, client: TravelCode
       "USER-FACING LANGUAGE: talk about 'travel advisory', 'safety status', 'risk level'. Mention the country by name, not ISO code.",
     ].join("\n"),
     getCountryAdvisorySchema,
+    READ_ONLY_TOOL,
     getCountryAdvisoryHandler(client),
   );
 }

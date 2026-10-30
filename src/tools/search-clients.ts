@@ -4,6 +4,7 @@ import { TravelCodeApiClient } from "../client/api-client.js";
 import { ClientShort } from "../client/types.js";
 import { formatClientList } from "../formatters/client-formatter.js";
 import { impersonationInputSchema, withImpersonation } from "../util/impersonation-tool.js";
+import { READ_ONLY_TOOL } from "../util/tool-annotations.js";
 
 export const searchClientsSchema = {
   first_name: z.string().optional().describe("First name to match (partial, case-insensitive, matches both Cyrillic and Latin fields)"),
@@ -26,6 +27,7 @@ export function registerSearchClients(server: McpServer, client: TravelCodeApiCl
       "Matching is partial and works against both Cyrillic and Latin name fields. At least one of first_name or last_name is required.",
     ].join("\n"),
     { ...searchClientsSchema, ...impersonationInputSchema },
+    READ_ONLY_TOOL,
     withImpersonation(async ({ first_name, last_name }) => {
       if (!first_name && !last_name) {
         return {

@@ -4,6 +4,7 @@ import { TravelCodeApiClient } from "../client/api-client.js";
 import { ModifyCheckResponse } from "../client/types.js";
 import { formatModifyCheck } from "../formatters/order-formatter.js";
 import { impersonationInputSchema, withImpersonation } from "../util/impersonation-tool.js";
+import { READ_ONLY_TOOL } from "../util/tool-annotations.js";
 
 export const checkOrderModificationSchema = {
   order_id: z.number().int().describe("Order ID to check modification for"),
@@ -14,6 +15,7 @@ export function registerCheckOrderModification(server: McpServer, client: Travel
     "check_order_modification",
     "Check if a booking can be changed and what kinds of change are allowed (contact info, passport, rebook, baggage). Always call this before modify_order. Speak about 'the booking' and 'allowed changes' to the user — never quote internal labels, REST routes, or error codes.",
     { ...checkOrderModificationSchema, ...impersonationInputSchema },
+    READ_ONLY_TOOL,
     withImpersonation(async ({ order_id }) => {
       try {
         const data = await client.get<ModifyCheckResponse>(`/orders/${order_id}/modify/check`);

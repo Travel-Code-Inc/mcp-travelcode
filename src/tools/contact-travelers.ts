@@ -9,6 +9,7 @@ import {
 } from "../client/types.js";
 import { formatContactResult } from "../formatters/traveler-formatter.js";
 import { impersonationInputSchema, withImpersonation } from "../util/impersonation-tool.js";
+import { DESTRUCTIVE_WRITE_TOOL } from "../util/tool-annotations.js";
 
 export const contactTravelersSchema = {
   traveler_ids: z
@@ -91,6 +92,7 @@ export function registerContactTravelers(server: McpServer, client: TravelCodeAp
       "Partial success is normal: the response may contain both 'sent' and 'failed' arrays — surface both to the user.",
     ].join("\n"),
     { ...contactTravelersSchema, ...impersonationInputSchema },
+    DESTRUCTIVE_WRITE_TOOL,
     contactTravelersHandler(client),
   );
 }

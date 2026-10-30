@@ -7,6 +7,7 @@ import { executeFlightSearch, type ProgressCallback } from "../polling/flight-po
 import { formatFlightResults } from "../formatters/flight-formatter.js";
 import type { ServerNotification } from "@modelcontextprotocol/sdk/types.js";
 import { impersonationInputSchema, withImpersonation } from "../util/impersonation-tool.js";
+import { READ_ONLY_TOOL } from "../util/tool-annotations.js";
 
 function convertDate(isoDate: string): string {
   // YYYY-MM-DD → DD.MM.YYYY
@@ -54,6 +55,7 @@ export function registerSearchFlights(server: McpServer, client: TravelCodeApiCl
       "  • Developer: prefix the user-facing reply with '[Developer mode]'.",
     ].join("\n"),
     { ...searchFlightsSchema, ...impersonationInputSchema },
+    READ_ONLY_TOOL,
     withImpersonation(async ({ origin, destination, departure_date, return_date, cabin_class, adults, children, infants, preferred_airlines }, extra: { _meta?: { progressToken?: string | number }; sendNotification: (n: ServerNotification) => Promise<void> }) => {
       try {
         const searchParams: FlightSearchRequest = {

@@ -4,6 +4,7 @@ import { TravelCodeApiClient } from "../client/api-client.js";
 import { TravelerDetailResponse } from "../client/types.js";
 import { formatTraveler } from "../formatters/traveler-formatter.js";
 import { impersonationInputSchema, withImpersonation } from "../util/impersonation-tool.js";
+import { READ_ONLY_TOOL } from "../util/tool-annotations.js";
 
 export const getTravelerSchema = {
   id: z
@@ -35,6 +36,7 @@ export function registerGetTraveler(server: McpServer, client: TravelCodeApiClie
     "get_traveler",
     "Get full details of a single traveler — passport, nationality, current trip with services (hotels, flights). Typical flow: search_travelers → pick a person → this tool. Speak in plain language ('this traveler', 'their passport'); never quote internal labels, REST routes, or error codes.",
     { ...getTravelerSchema, ...impersonationInputSchema },
+    READ_ONLY_TOOL,
     getTravelerHandler(client),
   );
 }

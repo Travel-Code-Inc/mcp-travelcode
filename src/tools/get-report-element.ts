@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { TravelCodeApiClient } from "../client/api-client.js";
+import { READ_ONLY_TOOL } from "../util/tool-annotations.js";
 
 const MAX_ROWS = 200;
 
@@ -89,6 +90,7 @@ export function registerGetReportElement(server: McpServer, client: TravelCodeAp
     "get_report_element",
     "Fetch the data of one report element (table rows, KPI counters, chart series) with optional filters. Universal endpoint — works for any report and element listed by get_report.",
     getReportElementSchema,
+    READ_ONLY_TOOL,
     async ({ reportId, elementId, filters, lang }) => {
       try {
         const params: Record<string, string | number | boolean | undefined> = { ...(filters ?? {}), lang };

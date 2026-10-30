@@ -3,6 +3,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { TravelCodeApiClient } from "../client/api-client.js";
 import { EmailBccListResponse } from "../client/types.js";
 import { formatBccList } from "../formatters/notifications-formatter.js";
+import { READ_ONLY_TOOL } from "../util/tool-annotations.js";
 
 export const listNotificationEmailBccSchema = {
   lang: z.enum(["en", "ru"]).default("en").describe("Language for group titles."),
@@ -23,6 +24,7 @@ export function registerListNotificationEmailBcc(server: McpServer, client: Trav
       "Use this before suggesting add/remove/resend — it returns the bccId you need for the other tools, plus the next allowed time if a confirmation re-send is rate-limited.",
     ].join("\n"),
     listNotificationEmailBccSchema,
+    READ_ONLY_TOOL,
     async ({ lang }) => {
       try {
         const data = await client.get<EmailBccListResponse>(

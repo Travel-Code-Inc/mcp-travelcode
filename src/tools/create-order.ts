@@ -2,6 +2,7 @@ import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import {
   TravelCodeApiClient,
+  TravelCodeNotFoundError,
   TravelCodeOfferChangedError,
 } from "../client/api-client.js";
 import { OrderEnvelope, OrderFull } from "../client/types.js";
@@ -16,6 +17,8 @@ import {
   validateChildrenAges,
 } from "../util/guest-validation.js";
 import { impersonationInputSchema, withImpersonation } from "../util/impersonation-tool.js";
+import { isShortFlightOfferRef, resolveFlightOfferRef } from "../util/flight-offer-ref.js";
+import { ADDITIVE_WRITE_TOOL } from "../util/tool-annotations.js";
 
 const documentSchema = z.object({
   type: z
@@ -53,7 +56,8 @@ const guestSchema = z.object({
     .enum(["adult", "child", "infant"])
     .optional()
     .describe(
-      "Guest type. If omitted, will be inferred server-side from dateOfBirth. " +
+      "Guest type. Flights: if omitted, inferred server-side from dateOfBirth. " +
+        "Hotels: the booking API requires it for every guest — set 'child'/'infant' for kids; if omitted, MCP sends 'adult'. " +
         "For hotel bookings, child/infant ages must match the search occupancy.",
     ),
   firstName: z.string().describe("First name in Latin characters"),
@@ -101,9 +105,9 @@ export const createOrderSchema = {
   offer_id: z
     .union([z.number(), z.string()])
     .describe(
-      "The internal offer reference for the option the user picked (printed under each option by the prior tool). " +
-        "For flights it's the position of the chosen flight in the result list; for hotels it's an opaque token. " +
-        "Copy verbatim, never show to the user.",
+      "The internal offer_reference printed under the option the user picked by the prior tool " +
+        "(flights: f_ followed by 16 hex chars; hotels: an opaque token). " +
+        "Never pass a position or row number from the list — it is refused. Copy verbatim, never show to the user.",
     ),
   passengers: z
     .array(guestSchema)
@@ -178,6 +182,26 @@ function normalizeGuest<
   return out;
 }
 
+/**
+ * A short f_<hex> reference is mapped back to the served offer id; anything
+ * else (a raw served id or a legacy orderId) goes through as given and the
+ * platform decides.
+ */
+async function resolveFlightOfferId(
+  client: TravelCodeApiClient,
+  searchId: string,
+  offerId: string | number,
+): Promise<string | number | null> {
+  const value = String(offerId).trim();
+  if (!isShortFlightOfferRef(value)) return offerId;
+  try {
+    return await resolveFlightOfferRef(client, searchId, value);
+  } catch (error) {
+    if (error instanceof TravelCodeNotFoundError) return null;
+    throw error;
+  }
+}
+
 export function registerCreateOrder(server: McpServer, client: TravelCodeApiClient) {
   server.tool(
     "create_order",
@@ -192,7 +216,7 @@ export function registerCreateOrder(server: McpServer, client: TravelCodeApiClie
       "",
       "How to wire the call (internal — never narrate to the user):",
       "  • Hotels: take the rate the user picked from get_hotel_offers, copy its offer_reference into offer_id and the search_reference at the bottom of get_hotel_offers (or, if missing, the search_reference at the bottom of search_hotels) into session_id, build rooms[].guests, set service_type='hotel'.",
-      "  • Flights: take the search_reference from search_flights (or get_flight_results), the position of the chosen flight in the result list (1-based index → 0-based number), pass passengers, set service_type='flight'.",
+      "  • Flights: take the search_reference from search_flights (or get_flight_results) into session_id and the offer_reference printed under the chosen flight into offer_id (never its position in the list), pass passengers, set service_type='flight'. If the offer is no longer in the results, run the search again and let the user pick again.",
       "",
       "Traveler data:",
       "  • FLIGHT — passport (number, expiry, document nationality) is mandatory. Ask the user if not already on the saved profile.",
@@ -209,6 +233,7 @@ export function registerCreateOrder(server: McpServer, client: TravelCodeApiClie
       "Dates: accept any common format from the user; we normalize internally. If a date is ambiguous (e.g. 03.04.2026 with no locale clue), the call fails and you must re-ask the user.",
     ].join("\n"),
     { ...createOrderSchema, ...impersonationInputSchema },
+    ADDITIVE_WRITE_TOOL,
     withImpersonation(async ({
       service_type,
       session_id,
@@ -253,7 +278,10 @@ export function registerCreateOrder(server: McpServer, client: TravelCodeApiClie
         const normalizedPassengers = passengers?.map((p, i) => normalizeGuest(p, `passengers.${i}`));
         const normalizedRooms = rooms?.map((r, ri) => ({
           ...r,
-          guests: r.guests.map((g, gi) => normalizeGuest(g, `rooms.${ri}.guests.${gi}`)),
+          guests: r.guests.map((g, gi) => ({
+            ...normalizeGuest(g, `rooms.${ri}.guests.${gi}`),
+            type: g.type ?? "adult",
+          })),
         }));
 
         if (service_type === "hotel" && expected_children_ages !== undefined) {
@@ -274,10 +302,25 @@ export function registerCreateOrder(server: McpServer, client: TravelCodeApiClie
           }
         }
 
+        let offerId: string | number = offer_id;
+        if (service_type === "flight") {
+          const resolved = await resolveFlightOfferId(client, session_id, offer_id);
+          if (resolved === null) {
+            return {
+              content: [{
+                type: "text",
+                text: "This flight offer is no longer in the search results — search again and let the user pick a flight from the fresh results. Tell the user the offer is no longer available and you are refreshing the search.",
+              }],
+              isError: true,
+            };
+          }
+          offerId = resolved;
+        }
+
         const body: Record<string, unknown> = {
           serviceType: service_type,
           sessionId: session_id,
-          offerId: offer_id,
+          offerId,
         };
         if (payment_method) body.paymentMethod = payment_method;
         if (book_key) body.bookKey = book_key;

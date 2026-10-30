@@ -4,6 +4,7 @@ import { TravelCodeApiClient } from "../client/api-client.js";
 import { EmployeeDetail } from "../client/types.js";
 import { impersonationInputSchema, withImpersonation } from "../util/impersonation-tool.js";
 import { formatEmployeeDetail } from "../formatters/employee-formatter.js";
+import { READ_ONLY_TOOL } from "../util/tool-annotations.js";
 
 export const getEmployeeSchema = {
   id: z.number().int().positive().describe("Employee id (from search_employees)."),
@@ -20,6 +21,7 @@ export function registerGetEmployee(server: McpServer, client: TravelCodeApiClie
       "Available to directors and travel managers (also account admins/editors); only employees of the caller's own companies are visible.",
     ].join("\n"),
     { ...getEmployeeSchema, ...impersonationInputSchema },
+    READ_ONLY_TOOL,
     withImpersonation(async ({ id }: { id: number }) => {
       try {
         const data = await client.get<EmployeeDetail>(`/users/${id}`);

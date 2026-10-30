@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { TravelCodeApiClient } from "../client/api-client.js";
+import { READ_ONLY_TOOL } from "../util/tool-annotations.js";
 
 export const getReportSchema = {
   reportId: z.string().describe("Report id (from list_reports), e.g. \"most-booked-hotels\""),
@@ -42,6 +43,7 @@ export function registerGetReport(server: McpServer, client: TravelCodeApiClient
     "get_report",
     "Get a report's structure: its filters (with allowed values) and its data elements (tables, KPI tiles, charts). Use this before get_report_element to learn which element ids exist and which filter keys they accept. Works for any report id.",
     getReportSchema,
+    READ_ONLY_TOOL,
     async ({ reportId, lang }) => {
       try {
         const data = await client.get<ReportConfig>(`/reports/${encodeURIComponent(reportId)}`, { lang });
